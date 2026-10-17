@@ -70,7 +70,7 @@ Rules for every step:
    - else `<branchPrefix><run>`. When that branch exists already: if `git rev-list --count <base>..<branch>` is 0 reuse it; otherwise stop and say "the branch has work: rename the plan or continue it with `baton: branch=<branch>`".
 3. **Iteration**: 1 + the number of earlier `runDir`s with the same `branch`. From iteration 2, say it in step 1.9's line with the pull request when there is one ("iteration 2 on feat/x, PR #4 open").
 
-**Batch 3**, one message: the profile's Write when step 1.4 wrote one; Read `<common-dir>/info/exclude`; `git rev-parse --verify <base>`, and `git merge-base <base> <branch>` for an existing branch; the worktree:
+**Batch 3**, one message: the profile's Write when step 1.4 wrote one; Read `<common-dir>/info/exclude`; `git rev-parse --verify <base>`, and for an existing branch `git merge-base <base> <branch>` and `git rev-parse <branch>`; the worktree:
 
 4. **Worktree**: when the branch is already checked out in an earlier baton worktree (`git worktree list` shows it under `.claude/worktrees/baton-…`), use that worktree as it is. Otherwise, from the checkout: `git worktree add -b <branch> .claude/worktrees/baton-<run> <base>` for a new branch, `git worktree add .claude/worktrees/baton-<run> <branch>` for an existing one. A failure (the branch checked out elsewhere, a path in use) stops the launch with git's message.
 5. **Install**: the profile's `install` runs inside the implementer session as the first step of part A (the brief says so), not here: that keeps the launch in this turn, where the session may be started (D-16).
@@ -82,7 +82,7 @@ Rules for every step:
 1. **Exclude**: make sure `<common-dir>/info/exclude` holds the lines `/.claude/worktrees/` and `/.claude/runs/` (Edit to add what is missing, or Write it if absent).
 2. **settled.md** in workerRunDir (`<worktree>/.claude/runs/<run>/`), with the line `# Settled while the plan ran` (D-37).
 3. **brief.md** in workerRunDir, from `PLUGIN/templates/brief.md` with every `{{…}}` replaced ("Filling the brief" below), one brief for the whole plan. Check your text before writing it: no `{{` may be left.
-4. **state.json** in runDir, as `PLUGIN/templates/state.json` shows: `status` `running` (or `dry-run`), parts with `pauseBefore`, the first part `working` with `startSha` = `baseSha` (or the worktree's `HEAD` for an existing branch), `current` the first part, `messagesSinceUser` 0, `presses` with the launch (`{ "at": <now>, "what": "launch" }`), and the roles, gates, delivery and install settled above.
+4. **state.json** in runDir, as `PLUGIN/templates/state.json` shows: `status` `running` (or `dry-run`), parts with `pauseBefore`, the first part `working` with `startSha` = `baseSha` for a new branch, or the branch's tip (`git rev-parse <branch>`) for an existing one, `current` the first part, `messagesSinceUser` 0, `presses` with the launch (`{ "at": <now>, "what": "launch" }`), and the roles, gates, delivery and install settled above.
 5. **decisions.md** in runDir: the header `| When | Part | Stop | Decision | Why |` and its separator line.
 
 **Batch 5**, one message: copy into workerRunDir, one command each, `PLUGIN/prompts/implementer.md` as `implementer.md`, `PLUGIN/agents/reviewer.md` as `reviewer.md`, and the plan file as `plan.md` (the reviewer reads this copy, so an uncommitted plan works too).
