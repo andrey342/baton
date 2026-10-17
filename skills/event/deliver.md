@@ -31,7 +31,7 @@ Read by the coordinator from `/baton:event` when the last part is done, or when 
 
 ## 5. Close, in one message
 
-Edit the report's delivery line (the URL, "merged locally into <base>", or why not), Write `state.json` with `status: delivered` and `delivery` complete (`url`, `comment` when one was posted), a push notification, and one line in the chat with the outcome and the report's path.
+Edit the report's delivery line (the URL, "merged locally into <base>", or why not) and, after a publish question, add the person's answer to "What needed you"; Write `state.json` with `status: delivered` and `delivery` complete (`url`, `comment` when one was posted), a push notification, and one line in the chat with the outcome and the report's path.
 
 ## The report
 

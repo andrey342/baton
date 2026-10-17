@@ -29,7 +29,7 @@ The event quotes the start of the session's report, `baton-result: <status> · p
 
 By the result's `status`:
 
-- **done**: valid when the log lists commits and the last round's first non-empty line reads `Verdict: OK` (or `Veredicto: OK`; ignore a leading code fence). Not valid: "baton · part <X> is not reviewed OK yet: run the review loop as your brief says." Valid: part X becomes `done` with `endSha` (the log's top commit), `rounds` and `verdict`, and each `### F-nn · P · category · file · title` heading of its `NO` rounds becomes one line of `<checkout>/.claude/runs/findings.jsonl`: `{"plan":"<run>","part":"<X>","round":<n>,"priority":"P2","category":"tests","file":"src/a.js:12","title":"…","at":"<now>"}`. Then the next part:
+- **done**: valid when the log lists commits and the last round's first non-empty line reads `Verdict: OK` (or `Veredicto: OK`; ignore a leading code fence). Not valid: "baton · part <X> is not reviewed OK yet: run the review loop as your brief says." Valid: part X becomes `done` with `endSha` (the log's top commit), `rounds` and `verdict`, and its `NO` rounds are logged (below). Then the next part:
   - it has `pauseBefore`: `status: waiting`, `waiting: { "kind": "pause", "part": "<next>" }`, and escalate "Part <X> done. The plan pauses before part <next>: continue?" with the buttons «Continue with <next>» / «Stop here»;
   - otherwise it becomes `working` with `startSha` = X's `endSha`, `current` moves to it, and the message is "baton · part <next> from <startSha>: read and follow `<workerRunDir>/brief.md`.";
   - no part left: the delivery, as `deliver.md` says (it continues this turn).
@@ -38,6 +38,8 @@ By the result's `status`:
   - a retry, two per part at most: "baton · retry part <X>: <what to try>";
   - a replan, once per part (also when the review rounds ran out): Write `workerRunDir/brief-<X>-replan.md`, a heading "Replanned by baton's supervisor", the reason, what changes, and "Criteria and start commit as in `brief.md`, part <X>; review rounds go on from r<last+1>, with the brief's number of rounds again"; the message is "baton · part <X> replanned: read and follow `<workerRunDir>/brief-<X>-replan.md`.";
   - else escalate.
+
+**Logging findings.** Whenever the Grep shows `NO` rounds of the part above its `logged` round (0 at first), each of their `### F-nn · P · category · file · title` headings becomes one line of `<checkout>/.claude/runs/findings.jsonl`, `{"plan":"<run>","part":"<X>","round":<n>,"priority":"P2","category":"tests","file":"src/a.js:12","title":"…","at":"<now>"}`, and `logged` becomes the last round seen, so a round is logged once whether the part ends `done` or `blocked`.
 
 **Every decision and escalation** is a row of `decisions.md` (time, part, what stopped, the decision, one sentence of why), counted in the part's `decisions`, and the one line you say.
 
@@ -58,7 +60,7 @@ If the app refuses the message (its quota, or the session cannot be reached), th
 
 ## The person's answer
 
-A message from the person sets `messagesSinceUser` to 0. When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
+Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` to 0 before anything else, whatever the run's status: the app's count starts again with it. When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
 
 - a question: a line in `settled.md`, then forward their words **verbatim**: "baton · answer from the person for part <X>: <their words>";
 - a pause: «Continue» sends the next part's message; «Stop here» delivers the parts done so far (`deliver.md`; the rest stay pending, said in the report);
@@ -69,6 +71,6 @@ A message from the person sets `messagesSinceUser` to 0. When the run is `waitin
 
 When the person says "sigue" or "continue", runs `/baton:status continue`, or this chat reopens with a run `running` or `waiting`:
 
-1. Read `state.json`. `waiting` set: ask that question again, as an escalation.
+1. Read `state.json`; their message sets `messagesSinceUser` to 0 (above). `waiting` set: ask that question again, as an escalation.
 2. Otherwise read `workerRunDir/result-<current>.md` and its time (`date -u -r <file> +%Y-%m-%dT%H:%M:%SZ`, in the same message): a result written after `lastSentAt` is an event not yet handled: act on it (steps 2 and 3).
 3. Otherwise look for the worker with `mcp__ccd_session_mgmt__get_session` (`state.worker.sessionId`). Alive and idle: send "baton · continue part <X> from your brief `<workerRunDir>/brief.md` (or its replan brief); check `git log` for what is done." Missing or archived: start a new implementer session as `/baton:run` step 4 says, with the same brief and the current part (this is the person's turn, so it may be started), and store its id. Working: say so and end the turn; its next turn end wakes you.

@@ -20,8 +20,8 @@
   "worker": { "sessionId": "local_…", "name": "baton-example", "model": "inherit", "effort": "high" },
   "reviewer": { "model": "sonnet", "effort": "medium" },
   "parts": [
-    { "id": "A", "title": "First piece", "status": "done", "startSha": "abc1234", "endSha": "bcd2345", "rounds": 2, "verdict": "OK", "decisions": 1, "retries": 0, "replanned": false },
-    { "id": "B", "title": "Next piece", "status": "working", "startSha": "bcd2345", "rounds": 0, "decisions": 0, "retries": 0, "replanned": false },
+    { "id": "A", "title": "First piece", "status": "done", "startSha": "abc1234", "endSha": "bcd2345", "rounds": 2, "verdict": "OK", "logged": 1, "decisions": 1, "retries": 0, "replanned": false },
+    { "id": "B", "title": "Next piece", "status": "working", "startSha": "bcd2345", "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false },
     { "id": "C", "title": "Last piece", "status": "pending", "pauseBefore": true }
   ],
   "current": "B",
