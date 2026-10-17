@@ -50,7 +50,7 @@ By the result's `status`:
 - Edit `decisions.md` (a row), `settled.md` (a line), `findings.jsonl` (Write it when absent), Write a replan brief: whichever step 2 needs;
 - escalating: PushNotification and `wrap_up` with the question and its buttons (below).
 
-Then the one line, and end the turn. Never poll, never wait.
+If the app refuses the message (its quota, or the session cannot be reached), the state you wrote is wrong: Write it again with the message not sent (`messagesSinceUser` and `current` as before) and escalate, `kind` `quota` with the message held, or `blocked` with the app's words. Otherwise the one line, and end the turn. Never poll, never wait.
 
 **Escalating** (always the person's, or unsure): `status: waiting` with `waiting` (`kind`: `question`, `pause`, `blocked`, `publish` or `quota`; the part; the question). The `wrap_up` carries one sentence on what is asked and why it is theirs as its recap, the question as asked, and the likely answers as two or three buttons; without `wrap_up`, ask it as plain text. The push notification (under 200 characters) says the same sentence. Nothing runs until they answer.
 
