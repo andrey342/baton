@@ -1,6 +1,6 @@
 {
   "name": "baton",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run a written plan part by part from one chat: a nested session implements, a fresh read-only subagent reviews until OK, the chat supervises within a closed authority table and delivers the way the repo asks. No code, no watchers: skills and one agent.",
   "author": { "name": "Andrey Kuzmin", "url": "https://github.com/andrey342" },
   "homepage": "https://github.com/andrey342/baton",

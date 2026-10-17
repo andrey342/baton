@@ -11,7 +11,7 @@ you ──/baton:run docs/plans/x.md──▶ this chat (coordinator)
                                       │     part A → commits → reviewer subagent → OK → result
                                       │◀── wakes up on each turn end, reads the result
                                       │    answers from the plan, or asks you (buttons + push)
-                                      ├─▶ "part B: read and follow brief-B.md"
+                                      ├─▶ "part B from <sha>: read and follow brief.md"
                                       │     …
                                       └─▶ delivery: branch, pull request or merge + report.md
 ```

@@ -7,7 +7,7 @@
       "name": "baton",
       "source": "./",
       "description": "Run a written plan part by part from one chat: a nested session implements, a fresh read-only subagent reviews, the chat supervises and delivers the way the repo asks.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

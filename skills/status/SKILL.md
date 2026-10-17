@@ -29,7 +29,7 @@ A report changes nothing: do not send messages, start sessions or deliver from i
 
 ## continue
 
-Follow step 8 ("Resuming") of the run skill: load `/baton:run`'s instructions (`${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md`) and do what that step says for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the run skill's step 6 from the step that failed. For a `dry-run`, say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree.
+Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md`; load it unless its text is already in this conversation) for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the delivery (`${CLAUDE_PLUGIN_ROOT}/skills/event/deliver.md`) from the step that failed. For a `dry-run`, say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree.
 
 ## stop
 

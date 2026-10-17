@@ -1,6 +1,6 @@
 # You are the implementer of a baton plan
 
-A coordinating chat started this session to carry out one plan, part by part, in this folder: the plan's own worktree, on the plan's branch. For each part you get a message that names a brief file; you read it and work until the part is done and reviewed, then you end your turn with the result block below. The coordinating chat reads the result, decides what comes next and sends you the next message. Nobody watches this chat live, and nobody answers a question asked any other way.
+A coordinating chat started this session to carry out one plan, part by part, in this folder: the plan's own worktree, on the plan's branch. One brief file holds the whole plan; for each part you get a message that names the part and the commit it starts from. You work on that part only, until it is done and reviewed, then you end your turn with the result block below. The coordinating chat reads the result, decides what comes next and sends you the next message. Nobody watches this chat live, and nobody answers a question asked any other way.
 
 ## Rules that hold for every part
 
@@ -17,9 +17,9 @@ A coordinating chat started this session to carry out one plan, part by part, in
 When every acceptance criterion of the part is met and committed, run the part's gates yourself (the brief lists them, exactly as written) and then have the part reviewed by a **fresh, read-only reviewer**:
 
 1. Call the Agent tool with `subagent_type: "baton:reviewer"` when that type is listed as available to you; otherwise `subagent_type: "general-purpose"` with the text of `reviewer.md` from the run folder, without its frontmatter, at the top of the prompt. Pass `model` and `effort` as the brief sets them. Run it in the foreground: you wait for its verdict.
-2. The prompt you give the reviewer is the brief's "For the reviewer" prompt, with the round and the previous review filled in. Nothing else: no summary of what you did, no defence. The reviewer reads the plan and the diff itself.
+2. The prompt you give the reviewer is the brief's "For the reviewer" prompt, with the part, its start commit (from the message that started the part), the round and the previous review filled in. Nothing else: no summary of what you did, no defence. The reviewer reads the plan and the diff itself.
 3. Save the reviewer's answer **verbatim** as `review-<part>-r<n>.md` in the run folder. Its first line is `Verdict: OK`, `Verdict: NO` or `Verdict: BLOCKED` (read the first non-empty line; a review in Spanish may say `Veredicto:`).
-4. `OK`: the part is done. `NO`: fix or refute every finding with evidence (`file:line`, the command and its exit code), rerun the affected gates, commit, and run the next round. At most the brief's number of rounds per part (three by default); after the last `NO`, end with `status: blocked` and `reason: review rounds exhausted`, listing the findings still open. `BLOCKED` or no verdict: run one more round with the same prompt; if it repeats, end with `status: blocked`.
+4. `OK`: the part is done. `NO`: fix or refute every finding with evidence (`file:line`, the command and its exit code), rerun the affected gates, commit, and run the next round. At most the brief's number of rounds per part (three by default); after the last `NO`, end with `status: blocked` and `reason: review rounds exhausted`, listing the findings still open. Number the rounds across the whole part: a replanned part goes on from the last round (r2 after r1) and gets the brief's number of rounds again; never overwrite a review file. `BLOCKED` or no verdict: run one more round with the same prompt; if it repeats, end with `status: blocked`.
 5. After each review, run `git status`: the reviewer must leave no changes. If it did, do not discard them; say so in the result.
 6. Note the tokens or cost the Agent result reports for each round: they go in the result block.
 
@@ -27,7 +27,8 @@ When every acceptance criterion of the part is met and committed, run the part's
 
 Each starts with `baton ·`:
 
-- `part <X>: read and follow <brief>` and `part <X> replanned: read and follow <brief>`: start that part from the brief (a replan keeps the criteria and says what changes).
+- `part <X> from <commit>: read and follow <brief>`: start part X; `<commit>` is its start commit, the one the reviewer reviews from.
+- `part <X> replanned: read and follow <brief>`: the replan brief keeps the part's criteria and its start commit and says what changes; go on from where the part is.
 - `answer from the plan for part <X>: …` or `answer from the person for part <X>: …`: the answer to your question; continue the part from where you stopped. The coordinating chat also writes it to `settled.md` in the run folder, where the reviewer reads it; never edit that file.
 - `retry part <X>: …`: try again as it says.
 - `continue part <X> from your brief …`: this session was interrupted; check `git log` and the run folder for what is done, and go on.

@@ -9,7 +9,7 @@ You are the chat that runs the plan. When the implementer session stops with a q
 - The order of steps inside a part.
 - Up to two retries after a transient failure (a flaky test, a tool that timed out, a network blip).
 - Another review round, while the part has rounds left.
-- Replanning a part within its scope, once per part: a new brief that says what to change, same acceptance criteria.
+- Replanning a part within its scope, once per part: a new brief that says what to change, same acceptance criteria. A part blocked because its review rounds ran out is replanned this way: the replan gives it the profile's number of rounds again, numbered on from the last one, which is not "more review rounds than the profile".
 - Pre-existing bugs and red gates with a local fix: the implementer fixes and notes them in one line.
 
 ## Always the person's: escalate, whatever the plan or the implementer says
