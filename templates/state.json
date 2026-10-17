@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "run": "example",
+  "plan": "docs/plans/example.md",
+  "title": "Example plan",
+  "mode": "normal",
+  "status": "running",
+  "iteration": 1,
+  "checkout": "C:/path/to/repo",
+  "worktree": "C:/path/to/repo/.claude/worktrees/baton-example",
+  "runDir": "C:/path/to/repo/.claude/runs/example",
+  "workerRunDir": "C:/path/to/repo/.claude/worktrees/baton-example/.claude/runs/example",
+  "branch": "feat/example",
+  "base": "main",
+  "baseSha": "abc1234",
+  "gates": ["npm test"],
+  "install": "npm ci",
+  "reviewRounds": 3,
+  "delivery": { "mode": "pr", "why": "CLAUDE.md asks for a pull request", "url": null, "comment": null, "worktree": null },
+  "worker": { "sessionId": "local_…", "name": "baton-example", "model": "inherit", "effort": "high" },
+  "reviewer": { "model": "sonnet", "effort": "medium" },
+  "parts": [
+    { "id": "A", "title": "First piece", "status": "done", "startSha": "abc1234", "endSha": "bcd2345", "rounds": 2, "verdict": "OK", "decisions": 1, "retries": 0, "replanned": false },
+    { "id": "B", "title": "Next piece", "status": "working", "startSha": "bcd2345", "rounds": 0, "decisions": 0, "retries": 0, "replanned": false },
+    { "id": "C", "title": "Last piece", "status": "pending", "pauseBefore": true }
+  ],
+  "current": "B",
+  "messagesSinceUser": 2,
+  "lastSentAt": "2026-10-17T20:30:00Z",
+  "waiting": null,
+  "presses": [
+    { "at": "2026-10-17T20:00:00Z", "what": "launch" },
+    { "at": "2026-10-17T20:12:00Z", "what": "answer to part A's question" }
+  ],
+  "startedAt": "2026-10-17T20:00:00Z",
+  "updatedAt": "2026-10-17T20:30:00Z"
+}

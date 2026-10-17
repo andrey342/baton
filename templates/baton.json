@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "base": "main",
+  "branchPrefix": "baton/",
+  "delivery": "branch",
+  "humanBeforePublish": false,
+  "gates": [],
+  "install": "",
+  "reviewRounds": 3,
+  "roles": {
+    "implementer": { "model": "inherit", "effort": "high", "skills": [] },
+    "reviewer": { "model": "sonnet", "effort": "medium", "skills": [] }
+  },
+  "modes": {
+    "cheap": { "implementer": { "model": "sonnet", "effort": "medium" }, "reviewer": { "model": "sonnet", "effort": "low" } },
+    "thorough": { "implementer": { "model": "opus", "effort": "high" }, "reviewer": { "model": "opus", "effort": "high" } }
+  },
+  "rules": [],
+  "notes": ""
+}

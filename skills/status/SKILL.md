@@ -1,0 +1,39 @@
+---
+name: status
+description: >-
+  Show where baton's plans in this repo stand (parts done, at work and pending, what waits for the person, the implementer session, the delivery), pick a plan up again after the app was closed, or stop it. Use when the person asks how a plan is going, to continue or resume it, or to stop it, e.g. "how is the plan going?", "¿cómo va el plan?", "sigue", "continúa con el plan", "retoma baton", "para el plan", "stop the plan".
+argument-hint: "[run] [continue|stop]"
+---
+
+# /baton:status
+
+Arguments: `$ARGUMENTS`: an optional run id (the folder name under `.claude/runs/`) and an optional action. "sigue", "continúa", "retoma" and "continue" mean `continue`; "para" and "stop" mean `stop`.
+
+The app's tools named below (`get_session`, `stop_session`) often arrive deferred: when one is listed only by name, load it with ToolSearch (`select:<name>`) before deciding you do not have it. The run's files and their fields are described in `${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md` ("Files"); `state.json` is shaped like `${CLAUDE_PLUGIN_ROOT}/templates/state.json`. Talk to the person in the language of the conversation. When the conversation holds nothing from them but the command, take the language of their earlier messages or of their own CLAUDE.md (user memory or instructions in your context); if nothing says, the plan's language (D-41).
+
+## Which runs
+
+Read every `.claude/runs/*/state.json` under `git rev-parse --show-toplevel`. Open runs are those with `status` `running`, `waiting`, `done-not-delivered` or `dry-run`. With a run id, only that one; without one, an action applies to the only open run (with several, list them and ask which).
+
+## No action: report
+
+For each open run, and the last finished one, a few lines:
+
+- the title, the status, the branch, the iteration and the mode;
+- the parts: `✓ A <title> (review r2 OK)`, `● B <title> (at work)`, `○ C <title> (pause before)`;
+- what waits for the person, in full, when `waiting` is set, and how to answer (reply in this chat, or the button offered);
+- the implementer session as a link, `[baton · <title>](#local_<id>)`, and whether it still exists (`mcp__ccd_session_mgmt__get_session`, when you have it);
+- `messagesSinceUser`, decisions so far, and the delivery (mode, pull request URL, worktree removed or kept) when done.
+
+A report changes nothing: do not send messages, start sessions or deliver from it. End with what the person can say next ("sigue" to pick it up, "para" to stop it).
+
+## continue
+
+Follow step 8 ("Resuming") of the run skill: load `/baton:run`'s instructions (`${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md`) and do what that step says for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the run skill's step 6 from the step that failed. For a `dry-run`, say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree.
+
+## stop
+
+1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`.
+2. If the implementer session is working, stop its turn with `mcp__ccd_session_mgmt__stop_session` when you have it; never archive or delete it.
+3. Add a row to `decisions.md`: stopped by the person.
+4. Say what stays: the branch, the worktree with its path, and the commits so far (`git log --oneline <baseSha>..<branch>`). To remove the worktree yourself later: `git worktree remove .claude/worktrees/baton-<run>`. Nothing is deleted.

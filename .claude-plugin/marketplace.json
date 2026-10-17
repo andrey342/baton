@@ -1,0 +1,13 @@
+{
+  "name": "baton",
+  "owner": { "name": "Andrey Kuzmin", "url": "https://github.com/andrey342" },
+  "metadata": { "description": "baton: run a written plan part by part with Claude Code's own sessions, reviewed until OK, from one chat" },
+  "plugins": [
+    {
+      "name": "baton",
+      "source": "./",
+      "description": "Run a written plan part by part from one chat: a nested session implements, a fresh read-only subagent reviews, the chat supervises and delivers the way the repo asks.",
+      "version": "0.1.0"
+    }
+  ]
+}
