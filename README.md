@@ -2,7 +2,7 @@
 
 **Run a written plan part by part from one chat in the Claude desktop app: a nested session implements each part, a fresh read-only reviewer checks it until OK, the chat answers what the plan settles and asks you the rest, then delivers the way the repo asks.**
 
-baton is a Claude Code plugin with no code: four skills, one agent, two prompts and some templates. It drives the app's own nested sessions, so there is no watcher, no background process and nothing to keep running.
+baton is a Claude Code plugin with no code: five skills, one agent, two prompts and some templates. It drives the app's own nested sessions, so there is no watcher, no background process and nothing to keep running.
 
 ```text
 you ──/baton:run docs/plans/x.md──▶ this chat (coordinator)
@@ -59,7 +59,7 @@ claude plugin marketplace remove baton --scope user
 2. **Set it up (optional).** `/baton:setup` (or "configura baton") reads `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.claude/rules`, the repo's skills and settings and the stack, says what it found, and writes `.claude/baton.json` with only what it detected. `--show` writes nothing; `--template` adds the plan template to `docs/plans/`. `/baton:run` does the same reading on its first run.
 3. **Write the plan.** Talk it through, then `/baton:plan` (or "escribe el plan") saves it from the template: an "Already decided" section, parts with acceptance criteria a reviewer can check, pauses where you want to decide.
 4. **Run it: type it yourself.** `/baton:run docs/plans/my-plan.md` (or "ejecuta el plan docs/plans/my-plan.md"). The app lets a chat start a session only in a turn you typed, so the launch is always your message; another session cannot launch it for you. `/baton:run` with no argument offers the repo's only plan. `--dry-run` prepares everything but starts no session.
-5. **Follow it in the sidebar.** A nested session `baton · <plan title>` works in the plan's worktree on its own branch. Your chat says one line per event.
+5. **Follow it in the sidebar.** A nested session `baton · <plan title>` works in the plan's worktree on its own branch. Each time it ends a turn, your chat handles it with `/baton:event` (it loads by itself) and says one line.
 6. **When something needs you**, the chat asks with buttons and sends a push notification: a question the plan does not settle, a pause the plan wrote, a blocked part, or a word to go on after nine messages (see Limitations). Answer in the chat; your words reach the implementer verbatim.
 7. **Delivery** follows the repo: the branch as it is, a pull request (created with the report as its body, or, if the branch already has an open one, updated by the push and commented with the report), or a local merge. Nothing is ever forced or deleted.
 8. **Report.** `.claude/runs/<run>/report.md`: parts, commits, gates, reviews, every decision with its reason, what you answered, and what needed you.
@@ -152,7 +152,7 @@ Five plans in two throwaway repos (one without rules; one with `CLAUDE.md`, a re
 ## Files
 
 - In your checkout, `.claude/runs/<run>/`: `state.json`, `decisions.md`, `report.md`, and at the end a copy of the implementer's files. `.claude/runs/findings.jsonl` collects review findings across plans; a category that repeats becomes a proposed rule in the report.
-- In the plan's worktree, `.claude/worktrees/baton-<run>/.claude/runs/<run>/`: the briefs, `settled.md`, `result-<part>.md` and `review-<part>-r<n>.md`. The implementer writes only inside its own folder.
+- In the plan's worktree, `.claude/worktrees/baton-<run>/.claude/runs/<run>/`: `brief.md` (one for the whole plan, plus `brief-<part>-replan.md` when a part is replanned), `settled.md`, `result-<part>.md` and `review-<part>-r<n>.md`. The implementer writes only inside its own folder.
 - `/.claude/worktrees/` and `/.claude/runs/` are added to `.git/info/exclude`. The profile is the repo's to commit or not.
 
 ## Limitations

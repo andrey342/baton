@@ -8,9 +8,9 @@ Con planes largos, el usuario hacía de mensajero entre chats: copiaba rutas, pe
 
 ## Diseño A: un coordinador, una sesión implementadora por plan
 
-- **El coordinador es el chat del usuario** con la skill `/baton:run` cargada. Lee las reglas del repo, crea el worktree y la rama del plan, escribe el estado en archivos y arranca **una** sesión implementadora anidada en modo `auto`, con el worktree como carpeta.
-- **La sesión implementadora** sigue `prompts/implementer.md` y el brief de cada parte: implementa, hace commits, ejecuta los gates y lanza un **revisor fresco** como subagente de solo lectura (`agents/reviewer.md`). Guarda cada revisión, aplica los hallazgos hasta tres rondas sin mandar ningún mensaje al coordinador, y termina el turno con un bloque `baton-result`.
-- **La app despierta al coordinador** cada vez que la sesión termina un turno. El coordinador lee `result-<parte>.md` y decide como supervisor con la tabla cerrada de `prompts/supervisor.md`. Después manda el brief siguiente, pregunta al usuario con botones y push, o entrega.
+- **El coordinador es el chat del usuario.** Con `/baton:run` lee las reglas del repo, crea el worktree y la rama del plan, escribe el estado y un solo brief con todas las partes, y arranca **una** sesión implementadora anidada en modo `auto`, con el worktree como carpeta. Cada aviso posterior lo atiende con `/baton:event`.
+- **La sesión implementadora** sigue `prompts/implementer.md` y la parte del brief que nombra cada mensaje, con su commit de inicio: implementa, hace commits, ejecuta los gates y lanza un **revisor fresco** como subagente de solo lectura (`agents/reviewer.md`). Guarda cada revisión, aplica los hallazgos hasta tres rondas sin mandar ningún mensaje al coordinador, y termina el turno con un bloque `baton-result`.
+- **La app despierta al coordinador** cada vez que la sesión termina un turno. El coordinador, con `/baton:event`, lee en una sola tanda el estado, el resultado, el `git log` de la parte y los veredictos, decide como supervisor con la tabla cerrada de `prompts/supervisor.md` y escribe en otra tanda: el estado, el mensaje de la parte siguiente o la respuesta, o la pregunta al usuario con botones y push. Con la última parte, entrega.
 - **La entrega** sigue al repo: dejar la rama, abrir la PR (o actualizarla y comentarla si ya existe) o merge local. Nunca `--force` ni borrados. Al final, `report.md`.
 
 ### Cómo encaja con los límites de la app
@@ -24,9 +24,13 @@ Con planes largos, el usuario hacía de mensajero entre chats: copiaba rutas, pe
 | Los `deny` del repo rigen en `auto` (sonda: `rm package.json` denegado por la regla de baton-lab y permitido en otro repo sin ella). | baton no toca los settings; el brief dice que una denegación no se esquiva. |
 | La sesión anidada no lee lo que no está en su carpeta sin posible diálogo. | El coordinador copia al worktree el prompt del implementador, el del revisor y el plan (D-15); el implementador solo escribe dentro de su carpeta (D-04). |
 
+## El coste del coordinador (0.2)
+
+En las pruebas de v0.1 el chat coordinador se llevó el 73 % del coste de cada plan. La causa no era el tamaño de la skill, sino el número de llamadas: cada llamada relee todo el chat (de 95.000 a 217.000 tokens, unos 75.000 del prompt de sistema de la app), y un aviso hacía de media 8,3 llamadas y un lanzamiento 13,2 (D-47). La 0.2 separa la skill de lanzamiento (`run`) de la de eventos (`event`): cada aviso es una tanda de lecturas, una tanda de escrituras y una línea (D-48); hay un solo brief por plan, así que un aviso ya no escribe ninguno (D-49); el lanzamiento va por tandas (D-50) y la entrega se lee solo al final (D-51).
+
 ## El estado vive en archivos
 
-`state.json`, `decisions.md`, `report.md` y `findings.jsonl` están en el checkout. Los briefs, `settled.md`, los resultados y las revisiones están en la carpeta del worktree, y al entregar se copian al checkout. Nada depende de la memoria del chat: tras una compactación o al reabrir la app, «sigue» o `/baton:status continue` reconstruyen la situación desde los archivos (D-09). Las respuestas que se dan durante el run, del plan o de la persona, se escriben en `settled.md`, que el revisor lee junto al «Already decided» del plan (D-37).
+`state.json`, `decisions.md`, `report.md` y `findings.jsonl` están en el checkout. El brief, `settled.md`, los resultados y las revisiones están en la carpeta del worktree, y al entregar se copian al checkout. Nada depende de la memoria del chat: tras una compactación o al reabrir la app, «sigue» o `/baton:status continue` reconstruyen la situación desde los archivos (D-09). Las respuestas que se dan durante el run, del plan o de la persona, se escriben en `settled.md`, que el revisor lee junto al «Already decided» del plan (D-37).
 
 ## Lo que conserva de foreman, y por qué
 
