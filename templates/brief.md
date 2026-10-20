@@ -34,7 +34,7 @@ Answers settled while the plan runs are appended to `{{workerRunDir}}/settled.md
 
 ## For the reviewer
 
-Review loop: at most {{reviewRounds}} rounds per part. Reviewer subagent: `baton:reviewer` when that type is listed, else `general-purpose` with the text of `{{workerRunDir}}/reviewer.md` (without its frontmatter) at the top of the prompt. Model `{{reviewerModel}}`, effort `{{reviewerEffort}}`.
+Review loop: at most {{reviewRounds}} rounds per part. Reviewer subagent: `baton:reviewer` when that type is listed, else `general-purpose` with the text of `{{workerRunDir}}/reviewer.md` (without its frontmatter) at the top of the prompt. Model `{{reviewerModel}}`, effort `{{reviewerEffort}}`, `run_in_background: false` (wait for the verdict before you end the turn).
 
 Prompt for each round (fill the part, its start commit from the coordinating chat's message, the round and the previous review):
 
