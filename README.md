@@ -60,7 +60,7 @@ claude plugin marketplace remove baton --scope user
 3. **Write the plan.** Talk it through, then `/baton:plan` (or "escribe el plan") saves it from the template: an "Already decided" section, parts with acceptance criteria a reviewer can check, pauses where you want to decide.
 4. **Run it: type it yourself.** `/baton:run docs/plans/my-plan.md` (or "ejecuta el plan docs/plans/my-plan.md"). The app lets a chat start a session only in a turn you typed, so the launch is always your message; another session cannot launch it for you. `/baton:run` with no argument offers the repo's only plan. `--dry-run` prepares everything but starts no session.
 5. **Follow it in the sidebar.** A nested session `baton · <plan title>` works in the plan's worktree on its own branch. Each time it ends a turn, your chat handles it with `/baton:event` (it loads by itself) and says one line.
-6. **When something needs you**, the chat asks with buttons and sends a push notification: a question the plan does not settle, a pause the plan wrote, a blocked part, or a word to go on after nine messages (see Limitations). Answer in the chat; your words reach the implementer verbatim.
+6. **When something needs you**, the chat asks with buttons and sends a push notification: a question the plan does not settle, a pause the plan wrote, a blocked part, or a word to go on after nine messages or ten wake-ups (see Limitations). Answer in the chat; your words reach the implementer verbatim.
 7. **Delivery** follows the repo: the branch as it is, a pull request (created with the report as its body, or, if the branch already has an open one, updated by the push and commented with the report), or a local merge. Nothing is ever forced or deleted.
 8. **Report.** `.claude/runs/<run>/report.md`: parts, commits, gates, reviews, every decision with its reason, what you answered, and what needed you.
 9. **After closing the app**, say "sigue" or `/baton:status continue`: everything lives in files, so baton picks up from them. `/baton:status` alone reports without acting; "para" stops the plan and keeps the branch and worktree.
@@ -124,13 +124,27 @@ The implementer asks only through its result file. The chat decides within a clo
 
 ## Cost, and which model where
 
-Measured over five test plans of one to three parts, at API prices: **1.6 to 4.2 USD per plan**, of which about **73 % is the coordinating chat**, 24 % the implementer session and 3 % the reviewer (0.04–0.06 USD per review round with Sonnet). The chat is the expensive role: every turn end of the implementer wakes it with its whole context, mostly cache reads.
+Measured over the v0.1 test plans (one to three parts), at API prices: **1.6 to 4.2 USD per plan**, of which about **73 % was the coordinating chat**, 24 % the implementer session and 3 % the reviewer (0.04–0.06 USD per review round with Sonnet). The chat is the expensive role: every turn end of the implementer wakes it, and each of its calls reads its whole context again, mostly from the cache.
+
+0.2 cuts the calls, not the context: `/baton:event` handles a turn end in one batch of reads, one of writes and one line, and the whole plan has a single brief. With an Opus chat, a part's event went from **8.3 calls and 0.39 USD to 3.1 calls and 0.20 USD**, and the coordinator from 0.91–1.12 to 0.33–0.54 USD per part (the role split was not measured again). A chat left idle for over an hour pays its whole context again on the next wake-up (the cache expires), about 1 USD at 160K tokens.
 
 - **Run the chat you launch from in Sonnet** unless the plan needs an Opus implementer. Cache reads cost the same on both, but writes and output cost half: about −24 % on the coordinator in the test plans.
 - **Fix the implementer's model in the profile** (`roles.implementer.model`) instead of inheriting the chat's. The app never starts a session on a model pricier than the chat's own (it ignores the request), so an Opus implementer needs an Opus chat.
 - **The reviewer** defaults to Sonnet/medium; `modes.cheap` in the profile can lower the implementer (even to Haiku/low) without weakening the reviewer.
 
 Prices: the official per-token table (Opus 5.5, Sonnet 5.5, Haiku 5.5; cache writes 1.25×/2× input), applied to the usage recorded in each session's transcript.
+
+## Results of the 0.2 tests
+
+Two plans in a new throwaway repo without a remote (Opus chat, Haiku/low and Opus implementers, Sonnet reviewer):
+
+| Plan | Parts | Presses by the person | What it exercised |
+|---|---|---|---|
+| t1 | 2 | 2: launch, «Publish» | install failing once → retry; a NO review with one round allowed → replan → round 2 OK; `humanBeforePublish` and a local `merge` |
+| t2 | 11 | 3: launch, two "sigue" | a second NO → replan; a rule proposed from a finding repeated in two plans; two lost wake-ups picked up by "sigue" (both fixed since, D-55, D-56) |
+
+- **Seen working live in 0.2:** retries, the coordinator's side of a NO (`findings.jsonl`, replan, the repeated-finding rule), `humanBeforePublish`, `merge` delivery, and resuming with "sigue" after a lost wake-up.
+- **Not seen live:** resuming after the app was closed with the implementer mid-part, and the stop after nine messages (a CLI probe covers it).
 
 ## Results of the v0.1 tests
 
@@ -159,10 +173,11 @@ Five plans in two throwaway repos (one without rules; one with `CLAUDE.md`, a re
 
 - **The launch is yours to type.** A session started by another session, or a turn opened by another session's message, cannot start sessions.
 - **Ten messages per word from you.** The app delivers at most 10 messages from a chat to other sessions per message you write in it, and wake-ups from other sessions do not reset that. baton stops before the tenth and asks for a word; a plan uses one message per part plus one per answer or retry.
+- **Ten wake-ups per word from you.** The app also wakes a chat for at most 10 turn ends of other sessions in a row without a word from you; the eleventh never arrives. baton counts them and asks for a word on the tenth. If a run ever looks stopped with its part done, say "sigue": the result is in its files.
 - **Empty worktree folders.** On Windows, `git worktree remove` cannot delete a folder the implementer session still uses as its working folder: git forgets the worktree, an empty folder stays under `.claude/worktrees/` until that session ends, and the report says so. It is safe to delete.
 - **`settings.local.json` does not reach the worktree.** The worktree holds only committed files, so `deny` rules or plugins enabled only in `.claude/settings.local.json` do not apply to the implementer session. `/baton:setup` warns about it. The repo's committed `deny` rules do apply in auto mode.
 - **Permission dialogs in the implementer session** are seen only in the sidebar ("needs you"); baton never answers them. The implementer runs commands one at a time and edits with Edit/Write to keep them rare.
-- **Designed but not yet tested live.** Every live review said OK in round 1, so the review loop's NO path (a finding, the fix, round 2) was exercised by a scripted probe only, and the coordinator's side of it (`findings.jsonl`, rules proposed from repeated findings) not at all. Also written but never run live: resuming after closing the app, replanning a part, retries after a transient failure, the stop after nine messages, `humanBeforePublish`, and `merge` delivery.
+- **Not yet seen live.** Resuming after the app is closed while the implementer is mid-part, and the stop after nine messages, which a CLI probe exercised (the person's words reset the count first in the live tests).
 - **Installed from a folder** (development), the plugin runs from a cache copy that a new session does not refresh while the version stays the same: uninstall and install again after a change.
 
 ## Contributing
