@@ -43,7 +43,7 @@ By the result's `status`:
 
 **Every decision and escalation** is a row of `decisions.md` (time, part, what stopped, the decision, one sentence of why), counted in the part's `decisions`, and the one line you say.
 
-**The message quota.** The app delivers at most 10 messages to other sessions per message the person writes in this chat (a button press counts), and events do not reset it (D-33). Each message to the worker adds 1 to `messagesSinceUser` and sets `lastSentAt`. A message that would make it 10 is not sent: `status: waiting`, `waiting: { "kind": "quota", "part": "<X>", "held": "<the message>" }`, and escalate "Nine messages since your last word: the app needs one from you to let baton go on." with the button «Continue».
+**The message quota.** The app delivers at most 10 messages to other sessions per message the person writes in this chat (a button press counts), and events do not reset it (D-33). Each message to the worker adds 1 to `messagesSinceUser` and sets `lastSentAt`. The app also wakes this chat for at most 10 turn ends of other sessions in a row without a word from the person; the 11th is never delivered and the run would stop in silence (seen live twice in 0.2). So every event adds 1 to `wakesSinceUser`, and on the 10th wake the next message is held the same way, whatever it is. A message that would make `messagesSinceUser` 10 is not sent either: `status: waiting`, `waiting: { "kind": "quota", "part": "<X>", "held": "<the message>" }`, and escalate "Nine messages since your last word: the app needs one from you to let baton go on." with the button «Continue».
 
 ## 3. Write, in one message
 
@@ -60,7 +60,7 @@ If the app refuses the message (its quota, or the session cannot be reached), th
 
 ## The person's answer
 
-Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` to 0 before anything else, whatever the run's status: the app's count starts again with it. When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
+Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` and `wakesSinceUser` to 0 before anything else, whatever the run's status: the app's count starts again with it. When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
 
 - a question: a line in `settled.md`, then forward their words **verbatim**: "baton · answer from the person for part <X>: <their words>";
 - a pause: «Continue» sends the next part's message; «Stop here» delivers the parts done so far (`deliver.md`; the rest stay pending, said in the report);

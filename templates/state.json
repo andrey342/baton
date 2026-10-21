@@ -26,6 +26,7 @@
   ],
   "current": "B",
   "messagesSinceUser": 2,
+  "wakesSinceUser": 2,
   "lastSentAt": "2026-10-17T20:30:00Z",
   "waiting": null,
   "presses": [
