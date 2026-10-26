@@ -35,6 +35,7 @@ The run is the one whose `state.json` (`status` `running`, `waiting` or `closing
 - Grep, pattern `^(Verdict|Veredicto):|^### F-`, in workerRunDir with glob `review-<current>-r*.md`, output `content`: every round's verdict and its findings' headings;
 - `date -u +%Y-%m-%dT%H:%M:%SZ`;
 - when the event quotes a status other than `done` and `supervisor.md` is not yet in this conversation: Read `PLUGIN/prompts/supervisor.md`;
+- when it quotes `done` in a version 2 run and `models.md` is not yet in this conversation: Read `PLUGIN/prompts/models.md`;
 - when `current` is the last part: Read `PLUGIN/skills/event/deliver.md` and `PLUGIN/templates/report.md`.
 
 ## 2. Decide
@@ -47,6 +48,8 @@ By the result's `status`:
   - it has `pauseBefore`: `status: waiting`, `waiting: { "kind": "pause", "part": "<next>" }`, and escalate "Part <X> done. The plan pauses before part <next>: continue?" with the buttons «Continue with <next>» / «Stop here»;
   - otherwise it becomes `working` with `startSha` = X's `endSha`, `current` moves to it, and the message is "baton · part <next> from <startSha>: read and follow `<workerRunDir>/brief.md`.";
   - no part left: the delivery, as `deliver.md` says (it continues this turn).
+
+  In a version 2 run with parts still pending, weigh the part just done against its row, as "While the plan runs" in `PLUGIN/prompts/models.md` says (read it in step 1 with a `done`): lowering a pending row is a line and a `decisions.md` row; raising one is the person's (Spending), asked after this event's message is sent.
 - **question**: as `supervisor.md` says. `needs: human`, a row of its table, or unsure: escalate. Answered from the plan, the rules or the code: a line in `settled.md` (below) and the message "baton · answer from the plan for part <X>: <answer>".
 - **blocked** or **failed**: as `supervisor.md` says, counted in the part's `retries`, `replanned` and `decisions`:
   - a retry, two per part at most: "baton · retry part <X>: <what to try>";
@@ -74,7 +77,7 @@ If the app refuses the message (its quota, or the session cannot be reached), th
 
 ## The person's answer
 
-Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` and `wakesSinceUser` to 0 before anything else, whatever the run's status: the app's count starts again with it. When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
+Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` and `wakesSinceUser` to 0 before anything else, whatever the run's status: the app's count starts again with it. When the run is `proposed`, their words answer the model table: follow step 3 of `/baton:run` (`PLUGIN/skills/run/SKILL.md`). When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
 
 - a question: a line in `settled.md`, then forward their words **verbatim**: "baton · answer from the person for part <X>: <their words>";
 - a pause: «Continue» sends the next part's message; «Stop here» delivers the parts done so far (`deliver.md`; the rest stay pending, said in the report);
@@ -85,6 +88,6 @@ Any message the person writes in this chat, typed or a button, sets `messagesSin
 
 When the person says "sigue" or "continue", runs `/baton:status continue`, or this chat reopens with a run `running` or `waiting`:
 
-1. Read `state.json`; their message sets `messagesSinceUser` to 0 (above). `waiting` set: ask that question again, as an escalation.
+1. Read `state.json`; their message sets `messagesSinceUser` to 0 (above). `proposed`: with `proposal.approvedAt`, the launch (step 4 of `/baton:run`); without it, show its model table again with its buttons, as step 2 of `/baton:run` ends, and nothing starts until the person's yes. `waiting` set: ask that question again, as an escalation.
 2. Otherwise read `workerRunDir/result-<current>.md` and its time (`date -u -r <file> +%Y-%m-%dT%H:%M:%SZ`, in the same message): a result written after `lastSentAt` is an event not yet handled: act on it (steps 2 and 3).
 3. Otherwise look for the worker with `mcp__ccd_session_mgmt__get_session` (`state.worker.sessionId`). Alive and idle: send "baton · continue part <X> from your brief `<workerRunDir>/brief.md` (or its replan brief); check `git log` for what is done." Missing or archived: start a new implementer session as `/baton:run` step 4 says, with the same brief and the current part (this is the person's turn, so it may be started), and store its id. Working: say so and end the turn; its next turn end wakes you.
