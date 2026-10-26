@@ -37,7 +37,7 @@ A part's weight is its size times the implementer's model and effort factors; th
 
 ## The ceiling
 
-The app never starts a session on a model above the chat's own; it ignores the request (D-45; the tool's own words: "anything higher is ignored"). So an implementer row on Opus needs a coordinator on Opus. Reviewers and Critics are subagents of the part's session, and the Agent tool runs them above the session's model (D-61): the ceiling is for implementers only. When a row is above this chat's model, the table says so on that row and in its "Coordinator" line, and offers two ways out: run `/baton:run` again from a chat on that model, or lower the row. Never launch with a model other than the approved one.
+The app never starts a session on a model above the chat's own; it ignores the request (D-45; the tool's own words: "anything higher is ignored"). So an implementer row on Opus needs a coordinator on Opus. Reviewers and Critics are subagents of the part's session, and the Agent tool runs them above the session's model (D-61): the ceiling is for implementers only. When a row is above this chat's model, the table says so on that row and in its "Coordinator" line, and offers two ways out: run `/baton:run` again from a chat on that model, or lower the row. Never launch with a model other than the approved one. Effort has a ceiling of its own: `start_session` takes an effort "at or below yours", so a session whose row asks for more effort than this chat runs at starts at this chat's and is raised right after with `set_session_effort` (baton 0.3's own run: a coordinator at `high` raised its implementer to `xhigh`, which `get_session` confirmed); the table needs no mark for it.
 
 ## While the plan runs
 
