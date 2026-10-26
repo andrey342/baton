@@ -12,12 +12,26 @@ The plugin's files: `${CLAUDE_PLUGIN_ROOT}` (below, **PLUGIN**). You are the coo
 
 Rules: talk to the person in the language of the conversation, one line per event unless something needs them; one shell command per call, never chained; files changed with Write and Edit only; nothing destructive (no `--force`, no deleting branches, no removing a worktree with changes); decisions follow `PLUGIN/prompts/supervisor.md`, whose table is the only authority. Deferred app tools (SendMessage, PushNotification, `wrap_up`, `get_session`): load the ones listed only by name with one ToolSearch, in the reads.
 
+## State versions
+
+`state.json` is `version` 1 (baton 0.2; a file without `version` is 1) or `version` 2 (`PLUGIN/templates/state.json`). Both are read; a run is written back in the version it has, never upgraded in flight. Where this skill names a v2 field, a v1 run reads:
+
+| v2 | v1 |
+|---|---|
+| the part's `session` (`id`, `name`) | `worker` (`sessionId`, `name`), one session for every part |
+| `repos.<name>` (`path`, `branch`, `base`, `baseSha`) | one repo: `worktree`, `branch`, `base`, `baseSha` at the top |
+| the part's `startSha` / `endSha`, one commit per repo of the part | one commit |
+| the part's `implementer`, `reviewer`, `critic` | `worker.model`/`effort` and the top-level `reviewer`; no critic |
+| `coordinator.sessionId` | this chat |
+
+Run statuses: `running`, `waiting`, `done-not-delivered`, `delivered`, `stopped` and `dry-run` in both; v2 adds `proposed` (the model table is out, nothing created), `paused` and `closing`. Part statuses: `pending`, `working`, `done`, and in v2 `paused`. `waiting.kind` in v2 adds `start` (a session the app would not start, with its card's `taskId`) and `resource`. The result block is v2 too (`PLUGIN/prompts/implementer.md`); a v1 block has only fewer fields, and both are read the same way.
+
 ## 1. Read, in one message
 
-The run is the one whose `state.json` (`status` `running` or `waiting`) names the event's session in `worker.name` or `worker.sessionId`. If this conversation does not show its paths (after a compaction, say), Glob `.claude/runs/*/state.json` from the checkout first. Then, in one message:
+The run is the one whose `state.json` (`status` `running`, `waiting` or `closing`) names the event's session in `worker.name` or `worker.sessionId` (v1), or in a part's `session.name` or `session.id` (v2). If this conversation does not show its paths (after a compaction, say), Glob `.claude/runs/*/state.json` from the checkout first. Then, in one message:
 
 - Read `runDir/state.json`, and `workerRunDir/result-<current>.md`;
-- `git -C <worktree> log --oneline <startSha of current>..HEAD`;
+- `git -C <worktree> log --oneline <startSha of current>..HEAD` (v2: one per repo of the part, `git -C <repos.<name>.path> log --oneline <startSha.<name>>..HEAD`);
 - Grep, pattern `^(Verdict|Veredicto):|^### F-`, in workerRunDir with glob `review-<current>-r*.md`, output `content`: every round's verdict and its findings' headings;
 - `date -u +%Y-%m-%dT%H:%M:%SZ`;
 - when the event quotes a status other than `done` and `supervisor.md` is not yet in this conversation: Read `PLUGIN/prompts/supervisor.md`;
@@ -48,7 +62,7 @@ By the result's `status`:
 ## 3. Write, in one message
 
 - Write `state.json` whole, with every change of step 2 and `updatedAt`;
-- SendMessage to `worker.sessionId`, when there is a message;
+- SendMessage to `worker.sessionId` (v2: the current part's `session.id`), when there is a message;
 - Edit `decisions.md` (a row), `settled.md` (a line), `findings.jsonl` (Write it when absent), Write a replan brief: whichever step 2 needs;
 - escalating: PushNotification and `wrap_up` with the question and its buttons (below).
 

@@ -1,38 +1,79 @@
 {
-  "version": 1,
+  "version": 2,
   "run": "example",
   "plan": "docs/plans/example.md",
   "title": "Example plan",
   "mode": "normal",
   "status": "running",
   "iteration": 1,
+  "workspace": "worktree",
+  "sessions": "per-part",
   "checkout": "C:/path/to/repo",
   "worktree": "C:/path/to/repo/.claude/worktrees/baton-example",
   "runDir": "C:/path/to/repo/.claude/runs/example",
   "workerRunDir": "C:/path/to/repo/.claude/worktrees/baton-example/.claude/runs/example",
-  "branch": "feat/example",
-  "base": "main",
-  "baseSha": "abc1234",
+  "repoRunId": "20261101-example",
+  "coordinator": { "sessionId": "local_…", "model": "opus" },
+  "proposal": {
+    "approvedAt": "2026-11-01T10:05:00Z",
+    "words": "Sí, lanza cada parte en su sesión con esta tabla",
+    "revisions": 2
+  },
+  "repos": {
+    "root": { "path": "C:/path/to/repo/.claude/worktrees/baton-example", "branch": "feat/example", "base": "main", "baseSha": "abc1234", "createdBy": "baton" },
+    "backend": { "path": "C:/path/to/repo/.claude/worktrees/baton-example/backend", "branch": "feat/example", "base": "develop", "baseSha": "def5678", "createdBy": "baton" }
+  },
   "gates": ["npm test"],
   "install": "npm ci",
   "reviewRounds": 3,
-  "delivery": { "mode": "pr", "why": "CLAUDE.md asks for a pull request", "url": null, "comment": null, "worktree": null },
-  "worker": { "sessionId": "local_…", "name": "baton-example", "model": "inherit", "effort": "high" },
-  "reviewer": { "model": "sonnet", "effort": "medium" },
+  "delivery": { "mode": "pr", "why": "CLAUDE.md asks for a pull request", "order": ["backend", "root"], "prs": [], "url": null, "comment": null, "worktree": null },
   "parts": [
-    { "id": "A", "title": "First piece", "status": "done", "startSha": "abc1234", "endSha": "bcd2345", "rounds": 2, "verdict": "OK", "logged": 1, "decisions": 1, "retries": 0, "replanned": false },
-    { "id": "B", "title": "Next piece", "status": "working", "startSha": "bcd2345", "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false },
-    { "id": "C", "title": "Last piece", "status": "pending", "pauseBefore": true }
+    {
+      "id": "P1", "title": "First piece", "repos": ["root"], "status": "done",
+      "implementer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Steps prescribed by the plan; a mistake is cheap" },
+      "reviewer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Mechanical part" },
+      "critic": null, "weight": "S", "uses": [], "pauses": [],
+      "session": { "id": "local_…", "name": "baton-example-p1", "archived": false },
+      "startSha": { "root": "abc1234" }, "endSha": { "root": "bcd2345" },
+      "rounds": 2, "verdict": "OK", "logged": 1, "decisions": 1, "retries": 0, "replanned": false,
+      "verified": { "at": "2026-11-01T11:00:00Z", "clean": true, "reviewerModel": "claude-sonnet-5-5", "deviations": [] }
+    },
+    {
+      "id": "P2", "title": "Next piece", "repos": ["backend", "root"], "status": "working",
+      "implementer": { "model": "opus", "effort": "medium", "skills": [], "reason": "Authorization: security and a public contract (§3)" },
+      "reviewer": { "model": "opus", "effort": "high", "skills": [], "reason": "One step above the implementer on a risky part" },
+      "critic": { "model": "opus", "effort": "high", "skills": [], "reason": "Independent acceptance of the contract" },
+      "weight": "L", "uses": ["docker-stack"],
+      "pauses": [{ "before": "P2.8", "text": "data reset", "delegated": false }],
+      "session": { "id": "local_…", "name": "baton-example-p2", "archived": false },
+      "startSha": { "backend": "def5678", "root": "bcd2345" }, "endSha": null,
+      "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false, "verified": null
+    },
+    {
+      "id": "P3", "title": "Last piece", "repos": ["root"], "status": "pending", "pauseBefore": true,
+      "implementer": { "model": "sonnet", "effort": "high", "skills": [], "reason": "Documentation with the design already chosen" },
+      "reviewer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Documentation" },
+      "critic": null, "weight": "M", "uses": [], "pauses": [],
+      "session": null, "startSha": null, "endSha": null,
+      "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false, "verified": null
+    }
   ],
-  "current": "B",
-  "messagesSinceUser": 2,
-  "wakesSinceUser": 2,
-  "lastSentAt": "2026-10-17T20:30:00Z",
+  "current": "P2",
+  "authority": {
+    "delegated": [{ "row": "plan-pause", "scope": "the reset of P2.8", "at": "2026-11-01T10:30:00Z", "words": "autorizo el reset de P2.8" }],
+    "publishApproved": null
+  },
+  "locks": { "docker-stack": "local_…" },
+  "excluded": [],
+  "closing": { "steps": [], "sessions": [] },
+  "messagesSinceUser": 1,
+  "wakesSinceUser": 3,
+  "lastSentAt": "2026-11-01T11:00:00Z",
   "waiting": null,
   "presses": [
-    { "at": "2026-10-17T20:00:00Z", "what": "launch" },
-    { "at": "2026-10-17T20:12:00Z", "what": "answer to part A's question" }
+    { "at": "2026-11-01T10:00:00Z", "what": "proposal" },
+    { "at": "2026-11-01T10:05:00Z", "what": "launch" }
   ],
-  "startedAt": "2026-10-17T20:00:00Z",
-  "updatedAt": "2026-10-17T20:30:00Z"
+  "startedAt": "2026-11-01T10:00:00Z",
+  "updatedAt": "2026-11-01T11:00:00Z"
 }

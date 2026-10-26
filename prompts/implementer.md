@@ -40,15 +40,19 @@ Each starts with `baton ·`:
 Save the block below as `result-<part>.md` in the run folder (overwrite the previous one of the part). If your session has a `wrap_up` tool, call it with a recap that starts `baton-result: <status> · part <X> ·` and the summary, with no question and no buttons. Then your **final message is the block alone**, nothing before or after it: the coordinating chat is woken with the start of that message.
 
 ```baton-result
-status: done | question | blocked | failed
+status: done | question | blocked | failed | paused
 part: A
 summary: one or two lines, including what you decided on your own
 commits: <sha> <subject>; <sha> <subject>
 gates: <command> → <exit code>; …
-reviews: r1 NO (2 findings); r2 OK
+evidence: <gate> → <log or TRX path> (<exit code>, <count>)
+deviations: <gate> → <what ran instead> · <its evidence>
+reviews: r1 NO (2 findings); r2 OK · critic r1 FAIL (2) closed
 reviewer_usage: r1 <tokens or USD>; r2 <tokens or USD>
+pause: <the plan's pause inside the part, e.g. P2.8>
 question: <only with status question: the question in one paragraph>
 needs: human            # only when a person must answer
+pr: <url>; <url>
 reason: <only with blocked or failed: why, in one or two lines>
 ```
 
@@ -56,4 +60,7 @@ reason: <only with blocked or failed: why, in one or two lines>
 - `question`: you need an answer to go on. It comes as a message; continue from where you stopped.
 - `blocked`: you cannot go on (rounds exhausted, a denied tool, an install that fails, a missing dependency you cannot install).
 - `failed`: the part cannot be done as written.
+- `paused`: a `baton · pausa` message stopped you; what is done, what is half done and what comes next are in `pause-<part>.md` in the run folder.
+- Leave out every line that does not apply. `commits` names the repo before each commit when the part has more than one repo (`backend <sha> <subject>`). `evidence` is for gates the brief says you run and the reviewer does not; `deviations` for a gate you could not run as written, with what you ran instead and its evidence; `pause` when you stop at a pause the plan puts inside the part (with `status: question` and `needs: human`); `pr` only after a delivery.
+- The coordinating chat is woken with the first 400 characters of your final message, so the block's first lines must be enough: keep `summary` to one or two lines and put anything longer in `result-<part>.md` below the block.
 - Without this block the coordinating chat treats the turn as unfinished. Never end on a question in prose, a dialog or a tool call.
