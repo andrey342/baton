@@ -164,11 +164,18 @@ The design is the plan `docs/PLAN-0.3.es.md` (D1 to D14). Points 1 to 4 of its �
 - **`run` and `event` run nothing in the background**, so `run_in_background` appears in neither.
 - **`deliver.md`** checks a pull request's `headRefOid` and the commits its body cites.
 
-Messages to the implementer stay in English, like all of baton's protocol (D-13). The plan's «deja el árbol limpio» is "leave the tree clean". Probes, with `claude -p --model sonnet` and a stub MCP server named `ccd_session` that logs `start_session` and answers with the app's own texts (`probes-3.md`, 1.05 USD in all):
+Messages to the implementer stay in English, like the fixed prefixes of D-19. The plan's «deja el árbol limpio» is "leave the tree clean". Probes, with `claude -p --model sonnet` and a stub MCP server named `ccd_session` that logs `start_session` and answers with the app's own texts (`probes-3.md`, 1.05 USD in all):
 - a `done` with an untracked file kept the part `working` and produced the clean-tree message;
 - a valid `done` set the next part `working` with its own session (`baton-notas-2`, Sonnet medium, as approved) and a prompt "from root <sha>";
 - a `coord-result` was read like `baton-result`, and its refused start became a card (no `cwd`, the folder in the prompt) with `waiting.kind: "start"`;
 - a session the state did not know, named `baton-notas-3`, was recognised by its name, and its `done` with a Critic FAIL and no `critic-3-r2.md` was refused;
 - a `done` whose review r2 lacked `### Criteria` was refused.
 
-Not seen live: a start inside a chain of events in the app, a real card clicked, the effort raised by an event, and the pull request check.
+Review r1 of part 3 (Opus xhigh) found five gaps, now closed and probed again with the stub (0.92 USD):
+- **The clean-tree message** offered "say why a file stays", which the check never accepts. Now a stray file is committed or taken out, and one that must stay is a `question`. The same files twice in a row escalate instead of looping; the probe escalated with a question, not a second message.
+- **A card already clicked** could get a second session when the person wrote before that session's first event. Now the coordinator looks for the session with `list_sessions`, then tries `dismiss_task`, and starts one only when the app confirms it withdrew a card nobody started. In the probe, `dismiss_task` said "already started" and nothing started.
+- **The effort ceiling could not be checked.** `run` now loads `set_session_effort`, `dismiss_task` and `list_sessions`, keeps this chat's `effort` in `coordinator`, and an event reads it with `get_session` before a start. The probe started at `high` and raised the session to `xhigh`.
+- **The card's prompt** now opens with the approved model and effort.
+- **The Critic loop has limits**: the review rounds it adds count toward the part's, the Critic gets the brief's number of rounds, and running out is `blocked` like exhausted review rounds.
+
+Not seen live: a start inside a chain of events in the app, a real card clicked (and what `dismiss_task` answers then), the effort raised by an event, and the pull request check.

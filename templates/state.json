@@ -13,7 +13,7 @@
   "runDir": "C:/path/to/repo/.claude/runs/example",
   "workerRunDir": "C:/path/to/repo/.claude/worktrees/baton-example/.claude/runs/example",
   "repoRunId": "20261101-example",
-  "coordinator": { "sessionId": "local_…", "model": "opus" },
+  "coordinator": { "sessionId": "local_…", "model": "opus", "effort": "high" },
   "proposal": {
     "approvedAt": "2026-11-01T10:05:00Z",
     "words": "Sí, lanza cada parte en su sesión con esta tabla",

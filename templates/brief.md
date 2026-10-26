@@ -46,7 +46,7 @@ Save each answer verbatim as `{{workerRunDir}}/review-<part>-r<n>.md`.
 
 > You are the Critic of part <part> of the plan `{{planCopy}}` in the folder `{{worktree}}`: the changes from <repo> `<start commit>` [· …] to `HEAD`. Critic round <n>. Gates: {{gates}}. Run folder with the part's reviews and earlier Critic rounds: `{{workerRunDir}}`; answers settled during the run: `{{workerRunDir}}/settled.md`; previous Critic round: <path or "none">. Skills of this repo to load first: <the part's Critic skills, or "none">. Answer with the review text only, first line `Verdict: PASS|FAIL`, second line `Model: <your model id>`.
 
-Save each answer verbatim as `{{workerRunDir}}/critic-<part>-r<n>.md`. A FAIL is closed by fixing its findings, one more review round and the Critic again, until it reads PASS.
+Save each answer verbatim as `{{workerRunDir}}/critic-<part>-r<n>.md`. A FAIL is closed by fixing its findings, one more review round and the Critic again, until it reads PASS: at most {{reviewRounds}} Critic rounds, and the review rounds it adds count toward the part's {{reviewRounds}}.
 
 ## How you end
 

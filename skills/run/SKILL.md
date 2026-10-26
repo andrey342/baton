@@ -1,7 +1,7 @@
 ---
 name: run
 description: >-
-  Launch a written plan from this chat, in two turns of the person. First a proposal: baton reads the plan, proposes a model and effort for the implementer, reviewer and Critic of each part with the reason and the plan section behind it, and waits for the person's yes or changes; nothing is created. Then, on the yes, the launch: the plan's worktree and branch, one brief, and the implementer session in auto mode; from then on /baton:event handles every turn end (review OK, questions within a closed authority table, delivery as branch, pull request or merge, with a report). Use when the person asks to run, launch or execute a plan file, e.g. "run docs/plans/x.md", "ejecuta el plan", "lanza el plan docs/plans/x.md", "baton, run this plan"; when they answer baton's model table ("sí, lanza", "baja P3 a Sonnet"); and to see the table without creating anything with --dry-run.
+  Launch a written plan from this chat, in two turns of the person. First a proposal: baton reads the plan, proposes a model and effort for the implementer, reviewer and Critic of each part with the reason and the plan section behind it, and waits for the person's yes or changes; nothing is created. Then, on the yes, the launch: the plan's worktree and branch, one brief, and the first part's implementer session in auto mode, each next part getting a session of its own; from then on /baton:event handles every turn end (review OK, questions within a closed authority table, delivery as branch, pull request or merge, with a report). Use when the person asks to run, launch or execute a plan file, e.g. "run docs/plans/x.md", "ejecuta el plan", "lanza el plan docs/plans/x.md", "baton, run this plan"; when they answer baton's model table ("sí, lanza", "baja P3 a Sonnet"); and to see the table without creating anything with --dry-run.
 argument-hint: "<plan.md> [--dry-run]"
 ---
 
@@ -9,7 +9,7 @@ argument-hint: "<plan.md> [--dry-run]"
 
 Arguments: `$ARGUMENTS`
 
-The plugin's files: `${CLAUDE_PLUGIN_ROOT}` (below, **PLUGIN**). You are the **coordinator**: you propose, and on the person's yes you launch here; the implementer session does the work, and `/baton:event` (`PLUGIN/skills/event/SKILL.md`) says what you do each time it ends a turn. Nobody else watches the plan: what you do not write to the run's files is lost when this chat compacts.
+The plugin's files: `${CLAUDE_PLUGIN_ROOT}` (below, **PLUGIN**). You are the **coordinator**: you propose, and on the person's yes you launch here; each part's implementer session does the work, and `/baton:event` (`PLUGIN/skills/event/SKILL.md`) says what you do each time one ends a turn. Nobody else watches the plan: what you do not write to the run's files is lost when this chat compacts.
 
 A run has three moments (plan 0.3, D1): the **proposal** (steps 1–2, this turn), the **launch** (step 4, the turn of the person's yes, which is what lets the app start sessions) and the **events** (`/baton:event`).
 
@@ -28,7 +28,7 @@ Rules for every step:
 - Nothing destructive: never `--force`, `-f`, `--force-with-lease`, `-D`, `--delete`, `--mirror`, `reset --hard`, never delete a branch, never remove a worktree with changes, never change the repo's or the person's settings. When a step would need one of these, stop and say so.
 - Every state change goes to `state.json` before you end the turn (D-09).
 - Nothing runs in the background from this chat: every command runs in the foreground and ends inside the turn. A turn opened by the end of a background task is automated, and the app does not let it start a session (plan 0.3 §2); long work belongs to a part's session.
-- The app's tools baton uses (`start_session`, `get_session`, `stop_session`, `bind_pr`, `wrap_up`, SendMessage, PushNotification) often arrive deferred: load every one that is listed only by name with a single ToolSearch (`select:<name>,<name>,…`) in the first batch, before deciding you do not have one.
+- The app's tools baton uses (`start_session`, `dismiss_task`, `get_session`, `list_sessions`, `set_session_effort`, `stop_session`, `bind_pr`, `wrap_up`, SendMessage, PushNotification) often arrive deferred: load every one that is listed only by name with a single ToolSearch (`select:<name>,<name>,…`) in the first batch, before deciding you do not have one.
 
 ## Files
 
@@ -39,7 +39,7 @@ Rules for every step:
 | `runDir/decisions.md` | you, from the approval on | one table row per approval, supervisor decision or escalation |
 | `runDir/report.md` | you, at the end | from `PLUGIN/templates/report.md` |
 | `<checkout>/.claude/runs/findings.jsonl` | you | one JSON line per finding of a `NO` review, across plans |
-| `<worktree>/.claude/runs/<run>/` (**workerRunDir**) | you: `plan.md`, `implementer.md`, `reviewer.md`, `brief.md`, `settled.md`, a `brief-<part>-replan.md` when a part is replanned; the implementer: `result-<part>.md`, `review-<part>-r<n>.md` | everything the implementer session reads and writes, inside its own folder (D-04, D-15) |
+| `<worktree>/.claude/runs/<run>/` (**workerRunDir**) | you: `plan.md`, `implementer.md`, `reviewer.md`, `brief.md`, `settled.md`, a `brief-<part>-replan.md` when a part is replanned; each part's session: `result-<part>.md`, `review-<part>-r<n>.md`, `critic-<part>-r<n>.md` | everything the parts' sessions read and write, inside their own folder (D-04, D-15) |
 
 `<checkout>` is `git rev-parse --show-toplevel` of this chat's folder. The worktree is `<checkout>/.claude/worktrees/baton-<run>`.
 
@@ -66,7 +66,7 @@ Rules for every step:
    - **Branch**, the first that applies (D-28): the plan's `branch=`, which must exist locally or as `origin/<branch>`; the branch of the latest earlier run of this plan when it still exists (locally or as `origin/<branch>`) and is **not done with**: not merged into the base (`--merged` prints nothing) or with an open pull request, so an open pull request is updated, never doubled; else `<branchPrefix><run>`. When that last one exists already: if `git rev-list --count <base>..<branch>` is 0 reuse it; otherwise stop and say "the branch has work: rename the plan or continue it with `baton: branch=<branch>`".
    - **Iteration**: 1 + the number of earlier `runDir`s with the same `branch`; from iteration 2 the options line says it, with the pull request when there is one ("iteration 2 on feat/x, PR #4 open").
 
-**Batch 2**, one message: `get_session` (this chat: its `model` and `permissionMode`); Read `PLUGIN/prompts/models.md`; the latest earlier `state.json` of this plan, if any; detect.md and its reads when there is no profile; `git rev-parse --verify <base>`; for each candidate branch of step 9, `git branch --list <branch>` (and `git branch --list <branch> --merged <base>`, `gh pr list --head <branch> --state open --json number,url` when an earlier run had it); for `pr`, `git remote get-url origin` and `gh auth status`.
+**Batch 2**, one message: `get_session` (this chat: its `model`, `effort` and `permissionMode`); Read `PLUGIN/prompts/models.md`; the latest earlier `state.json` of this plan, if any; detect.md and its reads when there is no profile; `git rev-parse --verify <base>`; for each candidate branch of step 9, `git branch --list <branch>` (and `git branch --list <branch> --merged <base>`, `gh pr list --head <branch> --state open --json number,url` when an earlier run had it); for `pr`, `git remote get-url origin` and `gh auth status`.
 
 ## 2. The proposal
 
@@ -90,7 +90,7 @@ Every reason cites the plan section it rests on. The options line holds the deli
 **Batch 3**, one message, only without `--dry-run`, all with Write and Edit:
 
 - `<common-dir>/info/exclude` (`git rev-parse --git-common-dir`, batch 2) holds `/.claude/worktrees/` and `/.claude/runs/` (Edit to add what is missing, or Write it if absent);
-- `runDir/state.json`, version 2, `status: proposed`: the run's fields (`run`, `plan`, `title`, `mode`, `workspace`, `sessions`, `checkout`, `runDir`, `iteration`, `gates`, `install`, `reviewRounds`, `delivery`), `coordinator` (`sessionId`, `model` of this chat), `repos.root` with `branch`, `base` and `baseSha` (null until the launch), `proposal` (`revisions`: 1, or the earlier proposal's + 1; `approvedAt` and `words` null), every part with its `implementer`, `reviewer` and `critic` rows (`model`, `effort`, `skills`, `reason`), `weight`, `pauseBefore` and `status: pending`, `current` null, `messagesSinceUser` 0, `wakesSinceUser` 0, `presses` with `{ "at": <now>, "what": "proposal" }`, `startedAt` and `updatedAt`;
+- `runDir/state.json`, version 2, `status: proposed`: the run's fields (`run`, `plan`, `title`, `mode`, `workspace`, `sessions`, `checkout`, `runDir`, `iteration`, `gates`, `install`, `reviewRounds`, `delivery`), `coordinator` (`sessionId`, `model` and `effort` of this chat), `repos.root` with `branch`, `base` and `baseSha` (null until the launch), `proposal` (`revisions`: 1, or the earlier proposal's + 1; `approvedAt` and `words` null), every part with its `implementer`, `reviewer` and `critic` rows (`model`, `effort`, `skills`, `reason`), `weight`, `pauseBefore` and `status: pending`, `current` null, `messagesSinceUser` 0, `wakesSinceUser` 0, `presses` with `{ "at": <now>, "what": "proposal" }`, `startedAt` and `updatedAt`;
 - the table, the buttons and the `wrap_up`.
 
 Then end the turn: nothing is created until the person answers. With `--dry-run`: no batch 3; show the table, then what the launch would do (the branch from the base, the worktree path, the brief, and the `start_session` call of step 4 with the first part's row), and that `/baton:run <plan>` proposes it for real.
