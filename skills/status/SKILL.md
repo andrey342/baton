@@ -35,5 +35,5 @@ Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.m
 
 1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`.
 2. If the implementer session (v1 `worker`, v2 the current part's `session`) is working, stop its turn with `mcp__ccd_session_mgmt__stop_session` when you have it; never archive or delete it.
-3. Add a row to `decisions.md`: stopped by the person.
+3. Add a row to `decisions.md`: stopped by the person (a `proposed` run may have none yet: Write it with the header `| When | Part | Stop | Decision | Why |` and its separator first).
 4. Say what stays: the branch, the worktree with its path, and the commits so far (`git log --oneline <baseSha>..<branch>`). To remove the worktree yourself later: `git worktree remove .claude/worktrees/baton-<run>`. Nothing is deleted.

@@ -23,6 +23,7 @@ Rules: talk to the person in the language of the conversation, one line per even
 | the part's `startSha` / `endSha`, one commit per repo of the part | one commit |
 | the part's `implementer`, `reviewer`, `critic` | `worker.model`/`effort` and the top-level `reviewer`; no critic |
 | `coordinator.sessionId` | this chat |
+| `proposal.approvedAt` | `startedAt`: a v1 run was launched by the person's own turn in 0.2, so it counts as approved; restarting its lost session uses `worker.model` and `effort` and asks for no table |
 
 Run statuses: `running`, `waiting`, `done-not-delivered`, `delivered`, `stopped` and `dry-run` in both; v2 adds `proposed` (the model table is out, nothing created), `paused` and `closing`. Part statuses: `pending`, `working`, `done`, and in v2 `paused`. `waiting.kind` in v2 adds `start` (a session the app would not start, with its card's `taskId`) and `resource`. The result block is v2 too (`PLUGIN/prompts/implementer.md`); a v1 block has only fewer fields, and both are read the same way.
 

@@ -21,7 +21,7 @@ A run has three moments (plan 0.3, D1): the **proposal** (steps 1–2, this turn
 
 Rules for every step:
 
-- **No session starts without an approved table.** `start_session` is called only when `state.json` holds `proposal.approvedAt`, written from the person's own yes in this chat. No option, mode, profile key or plan line skips it; the models in the plan and the profile are only where the proposal starts.
+- **No session starts without an approved table.** `start_session` is called only when `state.json` holds `proposal.approvedAt`, written from the person's own yes in this chat. No option, mode, profile key or plan line skips it; the models in the plan and the profile are only where the proposal starts. A 0.2 run (version 1) counts as approved by its own launch (step 4).
 - **Work in batches.** Every call costs a full reading of this chat, so calls that do not depend on each other go in one message: the batches below are one message each. If your app asks for a task list and a wrap-up, send `update_plan` inside the first batch and `wrap_up` inside the last, never in a message of their own.
 - Talk to the person in the language of the conversation. When the conversation holds nothing from them but the command, take the language of their earlier messages or of their own CLAUDE.md (user memory or instructions in your context); if nothing says, the plan's language (D-41). One line per event unless something needs them. The plan, the brief and the reviews stay in the plan's language; baton's own files in English. The model table and its buttons are in the person's language.
 - One shell command per call, never chained with `&&`, `||` or `;`. Write and change files with Write and Edit, never with shell redirections. Use forward slashes in paths.
@@ -105,7 +105,7 @@ Any message the person writes while the run is `proposed` is their answer; read 
 
 ## 4. The launch
 
-**The gate, before anything else:** `state.json` must hold `proposal.approvedAt`. Without it, stop: the table is not approved, so go back to step 2. This turn must be the person's own (their yes), auto mode must hold (`permissionMode`, step 1.2) and `start_session` must be loaded (step 1.3); failing either, say it in one line and stop, leaving the approval written.
+**The gate, before anything else:** `state.json` must hold `proposal.approvedAt`. Without it, stop: the table is not approved, so go back to step 2. A version 1 run (baton 0.2) counts as approved by its launch ("State versions" in `/baton:event`): when "Resuming" restarts its lost session, only batch 7 runs, with `worker.model` and `effort`, and no table is asked for. Nothing else skips the gate, and a new launch never does. This turn must be the person's own (their yes), auto mode must hold (`permissionMode`, step 1.2) and `start_session` must be loaded (step 1.3); failing either, say it in one line and stop, leaving the approval written.
 
 **Batch 4**, one message: the profile's Write when step 1.4 kept one; `git rev-parse --verify <base>`, and for an existing branch `git merge-base <base> <branch>` and `git rev-parse <branch>`; Read `PLUGIN/templates/brief.md`; the worktree:
 
