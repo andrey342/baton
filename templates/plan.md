@@ -1,15 +1,19 @@
 # <What this plan does>
 
-One or two lines on the goal. baton runs the parts below in order in one nested session, each reviewed by a fresh read-only reviewer until OK, and delivers the way this repo asks.
+One or two lines on the goal. baton proposes a model for each part and waits for your yes, then runs the parts below in order, each reviewed by a fresh read-only reviewer until OK, and delivers the way this repo asks.
 
 baton: mode=normal
 
 <!--
 Options on the `baton:` line, all optional, space-separated `key=value`:
-  mode=cheap|normal|thorough   models and effort of the implementer and the reviewer (profile roles otherwise)
+  mode=cheap|normal|thorough   where baton's model proposal starts (the profile's models.start otherwise); you approve the table
+  models=B:opus/high,C:sonnet  starting points for the implementer of the parts named; you approve the table
   delivery=branch|pr|merge|none   overrides the profile for this plan
   branch=<name>   work on this branch (an existing one, for a second iteration on an open pull request)
   base=<ref>      base branch for the worktree and the pull request (default: the profile's, else the current branch)
+  partHeading=<regex>   headings that are parts, with a named group id, for a plan numbered its own way (e.g. ^(?:\d+(?:\.\d+)*\s+)?(?<id>P\d+|CA)\b)
+  decided=§5,§13   numbered sections that count as "Already decided"
+A plan in another format can stay as it is: /baton:plan --adapt <plan> writes a map baton uses instead.
 -->
 
 ## Already decided

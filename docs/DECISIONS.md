@@ -1,6 +1,6 @@
 # baton — decisions
 
-D-01 to D-14 were fixed when the design was chosen; D-15 to D-46 came up while building and testing v0.1, and D-47 onwards in 0.2, each with what changed and why. The live tests ran in two throwaway repos, `baton-demo` (no rules) and `baton-lab` (rules, a repo skill, a `deny`, pull requests). The plan, the per-phase evidence and the final report that these entries cite are kept out of this repository; the README sums up the results.
+D-01 to D-14 were fixed when the design was chosen; D-15 to D-46 came up while building and testing v0.1, D-47 to D-57 in 0.2 and D-58 onwards in 0.3, each with what changed and why. The live tests ran in two throwaway repos, `baton-demo` (no rules) and `baton-lab` (rules, a repo skill, a `deny`, pull requests). The plan, the per-phase evidence and the final report that these entries cite are kept out of this repository; the README sums up the results.
 
 ## Fixed when the design was chosen (2026-10-17)
 
@@ -121,3 +121,313 @@ D-01 to D-14 were fixed when the design was chosen; D-15 to D-46 came up while b
 **D-56 · The app wakes a chat at most 10 times in a row without a word from the person.** Seen twice in t2: after ten wake-ups the eleventh turn end was never delivered, and the run stopped in silence with the part done and its result written. The coordinator counts wake-ups in `wakesSinceUser` like messages (D-33) and asks for a word on the tenth; "sigue" picks up a result written after `lastSentAt` (D-48's resuming), which is how both stops were recovered.
 
 **D-57 · Live results.** Seen working in the app: a retry after a transient install failure, the coordinator's side of a NO (findings logged, replan, round 2 OK), a rule proposed from a finding repeated across two plans, `humanBeforePublish` with `merge` delivery, and resuming after a lost wake-up. Not seen live: resuming with the implementer cut mid-part by closing the app, and the stop at nine messages (the person's words reset the count first; the CLI probe covers it). Coordinator cost with Opus 5.5: 0.20 USD and 3.1 calls per part event against 0.39 and 8.3 in v0.1.
+
+## v0.3 (2026-10-26)
+
+The design is the plan `docs/PLAN-0.3.es.md` (D1 to D14). Points 1 to 4 of its §2, what the app was not yet known to do, were measured in part 1 from the app's own records of MSG's manual Phase 3 and of the earlier baton and foreman rounds (the transcripts under `~/.claude/projects` and the desktop app's session files, read only) and with CLI probes as in D-54.
+
+**D-58 · Schemas v2: profile, state and result block, with v1 still read (part 1).** `templates/baton.json` v2 holds every key of the plan's §4 with its default: `workspace` `worktree`, `sessions` `per-part`, `branch` (`name` null = `<branchPrefix><run>`, `createdBy` `baton`), `repos` empty (one implicit repo `.`), `untrackedPolicy` `stop` (checked only with `workspace: checkout`), the seven `hooks` as null, `deliveryOrder` empty (the order of `repos`), `merge` `never`, `humanBeforePublish` `false` (it also takes `true` and `"ask-once"`, which only the person sets; D-06 stays the default), `authority` (`neverDelegate` `ui-design`, `install-software`; `credentials` is never delegated whether named or not), `resources`, `reviewer.neverRun`, `plan.partHeading` and `plan.decided`, `closing`, `localCi`, and `models.start`, the proposal's starting point: the 0.2 defaults (implementer `inherit`/`high`, reviewer `sonnet`/`medium`) move there, `roles` keeps only `skills` (D-39), and `modes` stays as a starting point. `templates/state.json` v2 is the plan's example made whole: `coordinator`, `proposal`, `repoRunId`, `repos` by name, parts with `implementer`, `reviewer` and `critic` rows, `weight`, `uses`, `pauses`, their own `session`, `startSha`/`endSha` per repo and `verified`, plus `authority`, `locks`, `excluded` and `closing`. The archive flag D10 calls `state.sessions[]` lives in each part's and closing session's `session` object, since the top-level `sessions` holds the profile's mode. Run statuses add `proposed`, `paused` and `closing`, part statuses `paused`, and `waiting.kind` `start` and `resource`; `/baton:event` lists them under "State versions" with a v2→v1 table that `event` and `status` read by, and a run is written back in its own version, never upgraded in flight. Until `/baton:run` starts a session per part it keeps writing v1 state; `setup` writes `version: 2`, and a v1 profile reads the same with the template's defaults (its `roles.<role>.model` standing for `models.start`). The result block v2 in `prompts/implementer.md` adds `paused`, `evidence`, `deviations`, `pause`, `pr`, the Critic in `reviews` and a repo before each commit, and keeps `summary` short because the coordinator is woken with 400 characters (D-18, D-49); reading `coord-result` is the coordinator's, in part 3. Probe: `/baton:status` with `claude -p --model sonnet` in a throwaway repo holding this very run's 0.2 `state.json` (`version: 1`, nine parts) reported it in full without errors and left it unchanged (4 turns, 0.21 USD).
+
+**D-59 · Whether `start_session` counts in the 10-message quota: not measured.** In the Phase 3 coordinator's transcript, counted per word of the person: at most 7 SendMessage in one window (no start) and, with starts, 3 starts plus 1 message; never near 10, and no quota refusal in the whole run. The app's own record of the session lists, in `peerReceipts`, 20 receipts that are all SendMessage calls and none of the transcript's 27 starts, which suggests a start is not a message to another session but does not prove the quota ignores it. baton counts each start as one message in `messagesSinceUser` until the live round (part 9) shows otherwise: being wrong costs at most an earlier «Continue».
+
+**D-60 · Whether a card keeps `model` and `effort`: partly measured.** The tool takes `model` and `effort` with `own_initiative`, and a proposal started by id starts "exactly as proposed" (the schema in the app of 2026-10-26). Two cards were started by the person's click in MSG (`task_75dac5e4`, `task_4179be7e`): both had `model` Opus and no effort, from an Opus/high chat, and both sessions ran Opus/high, so keeping and inheriting cannot be told apart; P3's card (Opus/medium) was dismissed unstarted. Seen too: both card-started sessions woke the chat that proposed them ("The session … you started … finished a turn"), so the card fallback of D3 keeps the coordinator's events, although `wake_when_done` cannot be set on a card. D3 stands: the card's text names its model and effort, and the coordinator checks them with `get_session` at the first event; the live round starts a card whose model is below the chat's.
+
+**D-61 · An `opus` subagent from a Sonnet session runs on Opus, and can name its model.** In the app's records, every Agent call asking `opus` from a `claude-sonnet-5-5` session (22, of which 15 `baton:reviewer` reviews with effort medium or high in MSG's Phase 3) has its subagent transcript on `claude-opus-5-5`; Haiku and Opus sessions asking `sonnet` (28) ran on `claude-sonnet-5-5`. A CLI probe (`claude -p --model sonnet`, one Agent call with `model: opus`, `run_in_background: false`) gave the same, with the subagent answering `Model: claude-opus-5-5` from its own system prompt (2 turns, 0.26 USD). So, unlike `start_session`, whose `model` cannot go above the chat's, the Agent tool runs reviewers and Critics above the session's model: the ceiling of D2 applies to implementers only, and D4's `Model:` line, copied by the reviewer from its system prompt, is reliable. Effort is not in the transcripts: not measured.
+
+**D-62 · What else stops a start in an automated turn: partly measured.** The app marks what opened each turn (`turnOrigin`: `human`, `sdk`, `peer`). In the records, ten starts in turns opened by a side-sessions event succeeded (P1, P2, P3, CA, P4, P5 and four closing sessions of MSG's Phase 3), the longest after 7 events in a row without a word from the person; the two refusals were a turn opened by a `task-notification` (MSG P3) and one opened by another session's message (foreman, `peer`). No start was attempted after a compaction inside a chain nor at the tenth wake-up, so neither is measured. The app's own instructions say a start is refused "on a turn that another session's message or an automated event started", except a side-sessions event "right after the user's own turn here (or another such turn)", and that after many events in a row, or after a coordinator turn that was stopped or failed, notes wait for the next turn. baton keeps D-56's stop on the tenth wake-up, treats a stopped or failed turn of its own as breaking the chain, and on any refusal falls back to the card (D3); the live round records whether a compaction breaks it.
+
+**D-63 · The model proposal: a table the person approves before anything is created (part 2; replaces D-07 and D-08).** `/baton:run <plan>` now ends its first turn with a table of the implementer, reviewer and Critic of each part (model, effort, skills), a weight and a reason that cites the plan section it rests on, from the rubric in `prompts/models.md`; the profile's `models.start`, `modes` and the plan's `mode=` and new `models=` are only where it starts. The state is written as version 2 with `status: proposed` and nothing else is created; the person's yes writes `proposal.approvedAt` and their words, and a «table approved» row opens `decisions.md`; a change rewrites the rows and adds one to `proposal.revisions`. `start_session` is called only after `approvedAt`, in the turn of the yes, which is the person's (D1); nothing skips the step, except that a 0.2 run (version 1) counts as approved by its own launch, so restarting its lost session uses `worker.model` and `effort` and asks for no table (review r3 of part 2; a probe on a v1 run with an archived worker said exactly that, 0.17 USD). The ceiling is checked against this chat's model for implementer rows only (D-61), and a row above it is marked and cannot be approved. The weight multiplies size (S 1, M 2, L 4) by the model's price factor from the official table cached 2026-10-06 (Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5 $0.10/$0.50 per MTok: Opus 2, Sonnet 1, Haiku 0.05) and by an effort factor that is baton's own estimate of tokens (low 0.5 to max 3), not a price. `--dry-run` now writes nothing at all (no state, no exclusion, no worktree), unlike 0.2 (D-54): it shows the table and what the launch would do. The launch writes version 2 state (superseding D-58's "keeps writing v1"), with each part's approved rows, the reviewer row of each part in the brief, and the first session started on the first part's row; with `sessions: "per-plan"` that session is every part's. During the run, `event` weighs each part done against its row: lowering pending rows is a line, raising them is the person's (Spending). Probes (`claude -p --model sonnet` on a three-part plan: docs, a prescribed filter, token login with an open design): the dry run showed one row per part with its reason and section, marked part 3 (Opus) as not launchable from this Sonnet chat, and created no branch, worktree or file (0.16 USD); the real proposal wrote `proposed` with revision 1 (0.24 USD); «baja P3 a Sonnet» gave a new table with revision 2 and no session (0.30 USD); the yes wrote `approvedAt`, the words and the decisions row, then stopped before any branch for lack of `start_session` (0.34 USD), which showed that an approved, unlaunched run must go straight to the launch when picked up again.
+
+**D-64 · A new session for each part, and a coordinator that checks the work instead of believing the report (part 3; replaces D-02's one session per plan).** The launch starts the first part's session and `/baton:event` starts each next one. Each session gets `initiation: "user_asked"` (the person's approval asked for "each part in its session"), the part's approved `implementer` row as model and effort, `name` `baton-<run12>-<part>` (24 characters at most, D-21) and `title` `baton · <plan> · <part>`. Its prompt names the start commit of each repo (`from root <sha>`) and the parts done before it. Messages go only to the current part's session, and each start counts as one message (D-59). The changes, by file:
+- **When the app refuses a start in an automated turn**, the same session is proposed as a card. The card keeps the model and effort but has no `cwd`, since a card cannot carry a folder (the app's words in the foreman records of 2026-10-16), and no `wake_when_done`, which the tool rejects on a card. The worktree is named in its prompt instead. The run waits with `waiting.kind: "start"` and the card's `taskId`, and a push asks for the click. The session the click starts wakes this chat (D-60) and is recognised by its name. When the person writes while the card waits, the coordinator starts a session only when the app confirms it withdrew a card nobody clicked, or, with the card gone, when the person answers that they did not click it (review r1 and r2 below).
+- **Effort has a ceiling too**: `start_session` takes an effort "at or below yours". A row above this chat's effort starts at the chat's and is raised with `set_session_effort`. This run shows that works: `get_session` gives the coordinator `high` and its implementer `xhigh`.
+- **`implementer.md`**:
+  - a session that is not the first reads the earlier `result-*.md` and `git log`;
+  - no turn ends with work still running (the wake-ups are few);
+  - `baton · entrega` is the only message that authorizes a push or a pull request;
+  - the tree is left clean in every repo;
+  - reviews are saved verbatim;
+  - the Critic loop: a FAIL is closed by a fix, one more review round and a Critic round that reads PASS;
+  - how to wait for a reviewer when the Agent tool has no `run_in_background`, as in this run, where every review came back as a hand-back message.
+- **`agents/reviewer.md`**: `Model: <id>` as the second line, copied from the reviewer's own system prompt (D-61); `### Criteria` and `### Gates` always present; a Critic mode answering `Verdict: PASS|FAIL`.
+- **The brief**: each part's Implementer, Reviewer and Critic lines carry their skills, which closes part 2's note on `{{reviewerSkills}}`, plus a Critic prompt.
+- **`event`, on a `done`**, before taking it:
+  - each repo's `git status --porcelain` is empty;
+  - each repo has commits;
+  - the last review is OK and every review has its `### Criteria` and `### Gates`;
+  - the Critic's last round is PASS, with a later round after any FAIL;
+  - submodule gitlinks match;
+  - every `deviations:` entry has its evidence.
+  
+  Each check that fails becomes one message to the part's session, and the part stays `working`. A `Model:` line that differs from the approved row is written down, and does not block. Rounds that run out make the coordinator check the open findings in the code before it replans.
+- **`coord-result`** is read as `baton-result`.
+- **`run` and `event` run nothing in the background**, so `run_in_background` appears in neither.
+- **`deliver.md`** checks a pull request's `headRefOid` and the commits its body cites.
+
+Messages to the implementer stay in English, like the fixed prefixes of D-19. The plan's «deja el árbol limpio» is "leave the tree clean". Probes, with `claude -p --model sonnet` and a stub MCP server named `ccd_session` that logs `start_session` and answers with the app's own texts (`probes-3.md`, 1.05 USD in all):
+- a `done` with an untracked file kept the part `working` and produced the clean-tree message;
+- a valid `done` set the next part `working` with its own session (`baton-notas-2`, Sonnet medium, as approved) and a prompt "from root <sha>";
+- a `coord-result` was read like `baton-result`, and its refused start became a card (no `cwd`, the folder in the prompt) with `waiting.kind: "start"`;
+- a session the state did not know, named `baton-notas-3`, was recognised by its name, and its `done` with a Critic FAIL and no `critic-3-r2.md` was refused;
+- a `done` whose review r2 lacked `### Criteria` was refused.
+
+Review r1 of part 3 (Opus xhigh) found five gaps, now closed and probed again with the stub (0.92 USD):
+- **The clean-tree message** offered "say why a file stays", which the check never accepts. Now a stray file is committed or taken out, and one that must stay is a `question`. The same files twice in a row escalate instead of looping; the probe escalated with a question, not a second message.
+- **A card already clicked** could get a second session when the person wrote before that session's first event. Now the coordinator looks for the session with `list_sessions`, then tries `dismiss_task`, and starts one only when the app confirms it withdrew a card nobody started. In the probe, `dismiss_task` said "already started" and nothing started.
+- **The effort ceiling could not be checked.** `run` now loads `set_session_effort`, `dismiss_task` and `list_sessions`, keeps this chat's `effort` in `coordinator`, and an event reads it with `get_session` before a start. The probe started at `high` and raised the session to `xhigh`.
+- **The card's prompt** now opens with the approved model and effort.
+- **The Critic loop has limits**: the review rounds it adds count toward the part's, the Critic gets the brief's number of rounds, and running out is `blocked` like exhausted review rounds.
+
+Review r2 found one more gap, now closed: a card gone without a click (dismissed in the app, or lost when it closed) left the run waiting for a session that would never come. Now `dismiss_task`'s answer decides:
+- withdrawn: start;
+- "already started": wait;
+- any other error: the person, who knows whether they clicked, answers «I clicked it: wait» / «I did not: start it».
+
+On the second answer, the coordinator starts after one more `list_sessions`. A session found later is raised to the row's effort. `event` reads `decisions.md` with a `done`, so the repeated-files rule survives a compaction. Probes, with the stub's `gone` mode (0.43 USD): «sigue» asked those two buttons and started nothing; «I did not: start it» made exactly one start, on the row's model and effort.
+
+Review r3 found that the launch started the first session "as `/baton:event` says" without ever loading that skill. Now batch 4 reads it, and batch 7 spells out the start's fixed parameters again. The "keep waiting" branches say `status` and `waiting` stay as they are, and "Resuming" looks for a card's session by name before it starts one. A full launch with the stub, proposal then yes (0.72 USD), made one start with `wake_when_done: true`, the worktree as `cwd`, `baton-notas-1` on its row, and a prompt naming `implementer.md`, `brief.md` and `from root <sha>`.
+
+Not seen live (as of part 3): a start inside a chain of events in the app, a real card clicked (and what `dismiss_task` answers then, or once the card is gone), whether `list_sessions` lists a session a card started, the effort raised by an event, and the pull request check.
+
+**D-65 · Several repos, and `workspace: "checkout"` (part 4).**
+
+**Repos and branches.** The profile's `repos` (`name`, `path`, `base`, `rules`, `reviewSkills`) make a run of several repos; without them there is one repo, `root` at `.`. Every repo gets a branch of the same name from its own base. `state.repos` holds each repo's `path`, `branch`, `base` and `baseSha`, and each part holds `startSha` and `endSha` per repo. A part names its repos in a `**Repos:**` line, or the proposal's analysis picks them ("(analysis)" in the table), and the table gets a Repos column and a line with each repo's branch and base.
+
+**The brief.** It lists every repo, and gives each part a `**Review from:**` line with one "<repo> `<start commit>` in `<path>`" per repo of the part. The reviewer's and the Critic's prompts are built from that line, so each repo's diff is read from its own start.
+
+**The workspace.**
+- In 0.3 several repos need `workspace: "checkout"`: a worktree of the root would carry no branch of its submodules. `worktree` stays as in 0.2, for one repo.
+- `checkout` runs in the folder the person uses, where runDir and workerRunDir are one folder. It allows one open run per checkout, since parts of two runs would share branches and files. It needs a clean start in each repo, untracked files following `untrackedPolicy` (`stop` or `ignore`; `exclude-local` comes with the hooks).
+- The branches are made with `git -C <repo> switch -c <branch> <base>`, or `git switch <branch>` when the plan already has them, never with force. They stay after the delivery, and the report says how to go back to each base once the person has merged.
+- A root that holds other repos of the run as submodules is checked with `status --ignore-submodules=all`: its gitlinks move as the submodules work, and each submodule is checked on its own.
+
+**The delivery** follows `deliveryOrder`, or by default the repos' order with a root after its submodules.
+- Before the root, and after the submodules' push for `pr`, a snapshot commits the root's gitlinks at the submodules' branch heads. It is the only commit baton itself makes; a `snapshot` hook replaces it in part 5.
+- `pr` opens one pull request per repo, and each body ends with "Sibling pull requests: …".
+- `merge` switches each repo to its base and merges, stopping at the first repo that does not merge cleanly.
+- A pause line with `deliver: <repos>` makes a partial delivery of those repos before the pause's question.
+- The order, any partial deliveries and each repo's outcome go into `state.delivery` and the report.
+
+**Probes** (`probes-4.md`, 1.27 USD). The lab is a root on `main` with `backend` and `frontend` as submodules from local bare remotes on `develop`, a checkout profile and delivery `branch`, and the tests used part 3's stub of the app's session tools.
+- **The dry run** showed the three branches and bases and "no crea worktree", and created nothing in any repo.
+- **A second `/baton:run`**, with another run open in the checkout, stopped before proposing and said why.
+- **The real launch** made `baton/lab` in all three repos with no worktree, and wrote a brief with each part's **Review from** line per repo.
+- **The last part's `done`** delivered in the order backend → frontend → root, with the snapshot commit before root, and wrote that order in the report.
+
+Seen and fixed in the probes: the launch had written `state.delivery` as a bare string, so the order reached the report but not the state, and `reviewRounds` as 2. The proposal's state write now names both. Not probed: `pr` with several repos (the lab has no `gh`), and a partial delivery at a pause.
+
+Review r1 of part 4 found four gaps, now closed:
+- **F-01:** `deliver.md` now says what `<path>` is: each repo's folder in the checkout, the root included, because a worktree run's worktree is gone by the publishing step. A worktree run merges only when the person's checkout is already on the base and clean, as in 0.2, and is never switched.
+- **F-02:** the per-part submodule check now applies only to a part that made a snapshot. Gitlinks that move during the run wait for the delivery.
+- **F-03:** `merge` with several repos reads the root's status with `--ignore-submodules=all`. A repo that cannot merge, and every repo after it, is delivered as `branch` with the reason. The snapshot compares and records the submodule's HEAD after its own step: its branch's head, or its base's merge commit with `merge`.
+- **F-04:** a partial delivery asks one question at its pause (publish and continue, continue without publishing, stop), and a failure keeps the pause waiting instead of `done-not-delivered`.
+
+Probes (0.62 USD):
+- a lab part on root and backend was taken as done with no snapshot asked for;
+- a `merge` delivery across the lab merged backend into `develop` and made the snapshot at that merge commit before the root merged into `main`;
+- a one-repo worktree run, once its worktree was removed, merged into the checkout's `main`.
+
+Review r2 found that a partial `merge` in a checkout run left the repo on its base, so later parts would commit straight onto it. Now a repo merged by a partial delivery goes straight back to the plan's branch, and the next part starts from its head. A worktree run's partial merge never switches anything. Probe (0.27 USD): at a pause naming backend, backend merged into `develop` and was back on `baton/lab3`, and the run waited at the pause with the outcome in its question.
+
+**D-66 · The repo's own process: hooks, who makes the branches, untracked files and the close (part 5).** `skills/run/hooks.md`, read only by runs whose profile needs it, holds the rules.
+
+**The hooks.** The profile can hold seven: `onStart`, `beforePart`, `afterPart`, `snapshot`, `deliver`, `onClose` and `afterMerge`. Each is a `run` command or a `text` step, `by` the coordinator (one command in the foreground, about two minutes at most, its exact command, exit and last lines in `decisions.md`) or by a part's session (written filled into the brief's new "The repo's own steps" section). `implementer.md` makes a part's start and end steps its first and last before the review. The delivery steps run only on `entrega`. `afterPart` cannot be the coordinator's, since the review is inside the session.
+
+**The markers** are `{{run}}`, `{{planSlug}}`, `{{yyyymmdd}}`, `{{repoRunId}}`, `{{branch}}`, `{{repo}}`, `{{repos}}`, `{{report}}` and `{{title}}`. `{{repoRunId}}` follows the profile's new `repoRunId` format (`{{yyyymmdd}}-{{run}}` by default) and is kept in the state. They are filled before a hook is run, sent or written. An unknown marker stops the launch, and the brief is grepped for `{{` before it is written. The state keeps the hooks as the profile writes them, so each event can read them.
+
+**Who makes the branches** (`branch.createdBy`):
+- `baton`, as before.
+- `hook`: `onStart` makes them, and each repo is then checked with `rev-parse` and `branch --show-current`, its `branchSha` kept.
+- `part:<id>`: that part makes them, and they are checked at its `done`.
+
+The profile's `branch.name` takes the markers too.
+
+**Untracked files** in a checkout run follow `untrackedPolicy`:
+- `stop`: the launch stops and names them;
+- `ignore`;
+- `exclude-local`: an anchored line per file in that repo's own `info/exclude`, listed in `state.excluded`, and removed with Edit at the close.
+
+**With a `deliver` hook by session**, the coordinator writes the report, sends the last part's session `baton · entrega: <repos in order>`, waits with `status: closing`, then checks the pull requests the session reports. **The close** comes after the person says it is merged (`/baton:status close`), or right after a `merge` baton made: `onClose`, `afterMerge` (to a session as `entrega` when it pushes), the repos back to their bases, the exclusions removed, `closedAt`.
+
+**Probes** (`probes-5.md`, 1.33 USD), in the lab with a profile whose `onStart` and `onClose` are lab scripts and whose plan file is untracked:
+- with `stop`, the launch stopped and named `docs/plans/lab4.md`, with no branch made and no hook run;
+- with `exclude-local`, the line `/docs/plans/lab4.md` went into the root's `info/exclude` and `state.excluded`;
+- `onStart` ran as `sh ../scripts/new-run.sh 20261027-lab4 baton/lab4`, made `baton/lab4` in the three repos, and left each repo's `branch` and `branchSha` checked with `rev-parse`;
+- `grep -c "{{"` gave 0 on the brief and `decisions.md`;
+- the close ran `onClose`, removed the exclude line and emptied `state.excluded`.
+
+Seen and fixed: the close left the root on the branch because its plain `status` shows the submodule pointers. It now checks the root with `--ignore-submodules=all`. Not probed: `deliver`, `snapshot`, `afterMerge` and `beforePart` run by a session, which need a live session, and `part:<id>`.
+
+Review r1 of part 5 found that the close was not wired into the run's states. Now:
+- **A closable run** is one `delivered` or `stopped` without `closedAt`, and `/baton:status close` picks among those. A `stopped` run's close only takes the repos back to their bases and removes the exclusions: nothing was merged, so no `onClose` or `afterMerge`.
+- **A session hook of the close** puts the run in `closing` with `closing.phase: "close"`. Its result comes back as an event, and the session can be the last part's or one named `baton-<run12>-close`. Only then do the switch back and the clean-up run, never under a session still at work. A `deliver` hook's wait is `closing.phase: "deliver"`.
+- **A checkout run** that is `delivered` or `stopped` without `closedAt`, while it still has `excluded` lines or a repo on its branch, blocks a new run in that checkout until it is closed.
+
+Probes (0.46 USD): a dry run stopped on such a `lab5`, naming its exclude line and its branch. `/baton:status lab5 close` then took root and backend back to their bases, removed the exclude line, emptied `state.excluded` and set `closedAt`, and ran no `onClose`.
+
+**D-67 · Authority the repo can tune and the person can delegate (part 6).**
+
+**The table.** Each row of `prompts/supervisor.md` now has an id. There are six new rows, all from MSG's Phase 3:
+- `ui-design`: choosing between design proposals;
+- `install-software`;
+- `credential-stores`: a session listed Windows Credential Manager;
+- `computer-use`: taking over the desktop;
+- `machine-environment`: Docker, host memory;
+- `red-gate-environment`: a gate accepted as red for the environment, only with equivalent evidence (D4).
+
+**The profile's `authority`:**
+- `allow` hands rows to the supervisor (`publish` for a repo that asks for pull requests without asking);
+- `alwaysAsk` adds the repo's own rows, always escalated and never delegable;
+- `neverDelegate` defaults to `ui-design` and `install-software`. `credentials`, `credential-stores` and `permissions` are never delegated whatever it says: the first two are the person's secrets, and baton never changes settings (D-14).
+
+The launch copies `authority` and `humanBeforePublish` into the state.
+
+**Delegation during a run.** The person's words ("autorizo el reset y push/PR; el diseño no") are split into rows with their scope.
+- Rows that cannot be delegated are refused in one line that says why.
+- The rest go into `settled.md`, under `## Delegated by the person` with the words verbatim, and into `state.authority.delegated`.
+- Each decision under a delegation is a row "decided under delegation (<row>: <scope>)", listed at the person's next word.
+- A delegation lasts the run, and a scope that does not clearly cover a stop is not delegated.
+- Words given with the proposal's yes are kept in the proposed state, and the launch writes them into the new `settled.md`. That file now opens with `## Delegated by the person`, then `## Answers`, where the answers are appended.
+
+**The plan's pauses.** Between parts and inside one (a result with `pause:`), they are decided this way when delegated, and otherwise escalated with buttons. The implementer gets a new message, "answer from the person's delegation". Only an entry of `authority.delegated` makes a pause delegated: nothing the plan or a part writes does.
+
+**What delegation does to publishing.** A delegated `publish`, or `publish` in `authority.allow`, counts as the person's yes for what its scope covers. That holds whatever `humanBeforePublish` says, at a partial or a final delivery and before an `entrega`, with a row "decided under delegation (publish: <scope>)". A merge is covered only when the scope names it. A delegated pause whose publishing is not delegated asks the publishing alone, still as the pause.
+
+**`humanBeforePublish: "ask-once"`.** One question at the run's first publication, partial or final, lists everything the run will publish: each push in order, each pull request with its title and body, the sibling lines and comments, and local-CI comments. The list waits in `publishList`. The yes moves it into `publishApproved`, and later publications in that list go without asking. Merge is never in it.
+
+**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs before the yes, and `/baton:plan` does so before it writes. Both read, whole, the `settled.md` and `decisions.md` of the five most recent earlier runs. `settled.md` holds the answers baton sent to a session (D-37) and the delegations. `decisions.md` holds the table's approval, the answers to pauses and publications, and the decisions of a run coordinated by hand, written in its own words.
+
+**Probes** (`probes-6.md`, 3.89 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
+- «autorizo el reset y push/PR; el diseño también» delegated `destructive` (the reset) and `publish` (push/PR), and refused the design in one line ("`ui-design` está en `neverDelegate`");
+- a pause inside a part, the reset, was decided under that delegation with its row and no question;
+- the design pause was escalated with buttons;
+- with `ask-once`, the first publication (a partial delivery of backend at a pause) asked once, listing the pushes and pull requests of all three repos;
+- after the yes, backend was pushed and its pull request opened;
+- the final delivery published frontend and root, with the snapshot and the sibling pull requests, without another question;
+- after review r1: with the pause and `publish` delegated under `ask-once`, A's `done` published backend with no question and started B, with both "decided under delegation" rows;
+- a delegation given with the proposal's yes reached the launched state and the new `settled.md`;
+- a delegated pause whose publishing was not delegated asked the publishing alone, as the pause, with the whole-list button and nothing pushed;
+- after review r2: when the session's partial delivery (a `deliver` hook `by: session`) came back at a delegated pause, `closing` ended and the next part started with no question;
+- a dry-run proposal showed its clash with an earlier run coordinated by hand, quoted from that run's prose `settled.md` and `decisions.md`.
+
+Seen and fixed:
+- the list waiting for the yes has its own field;
+- a partial pull request's body is a short note, with the report added later as a comment;
+- the delegated pause's publishing question has its kind and buttons spelled out;
+- the earlier runs' files are found with a Glob and read whole, since a Grep glob with a slash matched nothing and hand-run files have no fixed format.
+
+Not seen live: a real `gh`, a delegation taken back, a profile's `allow` and `alwaysAsk`, a `merge` under a delegated `publish`, and a real session running an `entrega`.
+
+**D-68 · A tolerant plan format and `/baton:plan --adapt` (part 7).**
+
+**What `/baton:run` reads** (step 1.5):
+- **`partHeading`**, in the profile's `plan.partHeading` or the plan's `partHeading=`: a regular expression with a named group `id`, matched against a heading's text at any level. Ids are alphanumeric (`P1`, `CA`, `P4fix`), and numbered headings work («7.1 P1 — …»). A heading it does not match is never a part.
+- **The title never counts as a part**: the only level-1 heading is the title, even when it matches.
+- **Inline acceptance**: "**Aceptación P1:** …" or "Acceptance: …" on one line is one criterion, which the reviewer breaks down.
+- **`decided`**, in the plan's `decided=§5,§13,§3.4` or the profile's `plan.decided`: those numbered sections count as decided, next to the "Already decided" section. The brief points to their lines in the plan copy rather than copying them.
+- **Pauses inside a part** ("Parada antes de P2.8", "antes del reset de P2.8") go into `parts[].pauses[]` with their text. The brief tells the part to stop there with `status: question`, `pause: <id>` and `needs: human`, and the coordinator treats them as the `plan-pause` row (D-67).
+
+**`--adapt <plan>`.** MSG's plans are versioned documents, so `--adapt` never changes them. It analyses the plan with the rules above, plus what the plan's own text says:
+- a step the plan's order names, such as «Cierre de la Parte A», becomes a part with an id, and `idFrom` says why;
+- repos come from a partition table or from paths;
+- a list of the plan's stops gives the pauses inside parts;
+- "pausa obligatoria" gives a pause between parts, and the delivery just before it becomes that pause's `pauseDeliver`.
+
+It then shows what it understood and asks the doubts (at most four, only those that change parts, repos or pauses). With no one to answer, it takes the reading that stops more and records it. The map goes to `.claude/runs/_maps/<plan>.json` (`templates/map.json`), out of git, with the plan's `git hash-object`, and the plan's hash is checked again after writing. It may propose a `baton:` line as text, never written into the plan.
+
+**The map in `/baton:run`.** A map with the same hash replaces the rules, and its doubts are shown above the table. A different hash is said, with both hashes and the way out (`--adapt` again), and the plan is read by the rules. The launch checks the hash once more (`planMap` in the state), so a plan changed between the proposal and the yes stops it.
+
+**Probes** (`probes-7.md`, 1.23 USD). They ran on a lab copy of `C:/MSG/docs/plans/plan-fase-3-servidor-mcp-remoto.md`, read but never written there; its hash was `0763221…` before and after.
+- `--adapt` found P0, P1, P2, P3, CA, P4 and P5, the pauses before P2.8 and P4.0 inside their parts, and the pause A→B before P4 with backend's partial delivery. The plan's hash was the same before and after.
+- A dry run with the map showed the model table of the seven parts.
+- After one line of the copy changed, the dry run named both hashes and did not use the map.
+
+Not seen live: the doubts asked with AskUserQuestion (the probes had no one to answer), a launch from a map, and the hash check at the launch.
+
+**D-69 · Pause, continue and the limits (part 8).**
+
+**Pause is not stop.** «para», «pausa» or `/baton:status pause` pauses the run so it can go on; «stop» or «cancela el plan» ends it, as before. An unsure «para» is a pause, which loses nothing.
+- **The pause:** `stop_session` for each part session running a turn, then the message "baton · pausa: guarda tu estado en `pause-<X>.md` (qué está hecho, qué está a medias, qué toca después), no uses computer use y termina con status: paused".
+- **The state:** `status: paused`, the parts `paused`, `paused {at, from, waiting, parts}`, and a `decisions.md` row. The person's word reset the quota, so the messages fit.
+- **The implementer** commits what is finished, writes `pause-<X>.md` and ends with `status: paused`.
+- **While paused,** a result is checked but nothing starts and nothing is sent. A verified `done` leaves `paused.parts`, and `paused.next` holds its next part (or `"deliver"` after the last one); anything else waits in `paused.held`. On «continúa», `paused.next` goes through the same steps as any `done`: the plan's own pause with its partial delivery, the next part's start, or the delivery. A card still waiting stays: «continúa» follows the card flow (`list_sessions`, `dismiss_task`, a start only once the card is withdrawn), never a new start on a guess.
+- **«para» elsewhere:** in `proposed` it is `/baton:run`'s stop; in `closing` the delivery or close under way finishes first.
+- **«continúa»:** a live session gets "baton · continúa <X> desde `pause-<X>.md`". A session that is gone is started again for the same part, with the same brief and start commits, the pause file and a coordinator `beforePart`. Then the run goes back to its earlier status, asking a waiting question again.
+
+**The limits.** Both counts are read after the event's own additions:
+- **at 8,** messages or wakes, a push ("baton will need a word from you soon") and the run goes on;
+- **at 9,** the next message or start is held with «Continuar».
+
+This keeps a margin below the app's 10, where 0.2 held at the 10th.
+
+**Another chat.** `/baton:status continue` from a chat that is not `coordinator.sessionId` says so: the part at work will not wake this chat, and «sigue» reads its result. `coordinator` changes to this chat when it starts a session for the run, since only those sessions wake it.
+
+**Archiving** happens only with the person's yes: in the proposal («archiva las sesiones verificadas»), later, or at the close. It sets `archiveSessions`, and only a `per-part` run archives before the close. A part's session is archived once nothing more goes to it:
+- once the next part's session has started;
+- after its own partial delivery, when its session makes one;
+- for the last part, at the close, after its hooks. A refusal (Phase 3's «live work» for hours) keeps `archived: false` and counts in `archiveTries`, retried at the coordinator's next turn. After the third refusal, one line with the session's link.
+
+**Probes** (`probes-8.md`, 2.90 USD), with a session stub that adds `stop_session`, `archive_session`, sessions known in advance and another chat's identity:
+- «para» stopped B's turn, sent the pausa message and left the run `paused` with its row;
+- «continúa» sent "baton · continúa B desde `pause-B.md`" to the live session;
+- with `wakesSinceUser` reaching 8 the push went out and the message was sent; reaching 9, it was held with «Continuar»;
+- a chat that was not the coordinator said so, handled the waiting `done`, started the next part, and became the coordinator;
+- after review r1: a `done` that arrived while paused left `paused.parts`, and «continúa» started the next part without a message to the done part;
+- «para» with a card waiting left the card, and «continúa» listed, withdrew and then started once;
+- with archiving on, the last part's `done` sent its `entrega` and archived nothing;
+- after review r2: the last part closed while paused, and «continúa» delivered it; a next part with the plan's own pause got that pause's question on «continúa», not a start.
+
+Not seen live: `stop_session` on a real turn (and whether the app delivers a message right after it), a session gone at «continúa», archiving at all, and its refusals.
+
+**D-70 · The 0.3 round, the documentation and the release (part 9).**
+
+**Where the round ran.** In the multi-repo lab under the run folder (`probes/round9`), never in `C:\MSG`, as the person settled («no quiero pausas»). This session may not start sessions, so the app was replaced in two ways (`probes-9.md`):
+- **The coordinator** was one `claude -p` conversation, resumed for every turn, with a stub for the session tools and a stand-in `gh`.
+- **Each part's session** was a real `claude -p` session, started with the model, effort and prompt of the stub's `start_session` call and resumed with each message the coordinator wrote.
+
+What only the app can show stays "not seen live".
+
+**The plan:** four parts in three repos.
+- A on Haiku, B and C on Sonnet, D on Haiku, after the person lowered A and D in the proposal.
+- A delegated pause inside B, given with the yes.
+- A question only the person could answer, in C (UI text).
+- «para» while D was at work, then «continúa».
+- A pull request per repo, in `deliveryOrder`.
+
+**Results:**
+- **Presses:** 6: the command, a change with the delegation, the yes, C's answer, «para» and «continúa».
+- **Wakes per part:** A 1, B 2, C 2, D 2.
+- **Starts:** 4, none refused and no card.
+- **Messages to sessions:** 3.
+- **Cost by role** at the official list prices (`costBasis: list`), the table D-45 used, from each conversation's `modelUsage` (`probes-9.md`). The total is 3.51 USD:
+  - **Coordinator:** 2.88 USD over 13 turns, 82 %.
+  - **Implementers:** 0.48 USD, 14 %.
+  - **Reviewers:** 0.16 USD, 4.5 %, about 0.03 to 0.05 USD per round.
+  
+  For A and D (Haiku implementers, Sonnet reviewers), `modelUsage` splits the two exactly. For B and C, implementer and reviewer share the model, so each reviewer is estimated at 0.04 USD from its 15,100 to 15,700 tokens, at the rate of A's and D's reviewers. D-45's split was 73 / 24 / 3 %. The coordinator here is a CLI conversation without the app's system prompt, so the shares compare, but not to the cent.
+- **What happened along the way:**
+  - A change and a yes in one message only revised the table, so the yes took one more press.
+  - The pausa reached D after its `done`. The coordinator closed D during the pause, kept `paused.next: "deliver"`, recorded D's late `paused`, and delivered on «continúa».
+
+**The documentation:**
+- **README:** the 0.3 flow (proposal, a session per part, checking, pause and continue, the close), the plan format with `--adapt`, the authority table with delegation, the v2 profile with `workspace`, `repos` and `hooks`, the round's results, and what was not seen live.
+- **`docs/DESIGN.es.md`:**
+  - design B is now the default, replacing D-02, D-07 and D-08;
+  - the whole shape of `state.paused` (`at`, `from`, `waiting`, `parts`, `next`, `held`);
+  - why state files are written with Write and Edit only: in Windows, two part-8 probes left cp1252 bytes in them through the shell, and a UTF-8 `json.load` then failed.
+- **`/baton:status` pause** writes `next: null` and `held: []` from the start.
+
+**The release.** `version` is `0.3.0` in `.claude-plugin/plugin.json` and `marketplace.json`, and the README says 0.3. The coordinator merges into `main` and pushes; this session does not.
+
+**Still open**, since the stubbed app could not show them, and their earlier rules stand:
+- **D-59:** whether `start_session` counts in the 10-message quota. baton keeps counting each start as a message. "Starts: 4, none refused" above is not an answer to it.
+- **D-60:** whether a card keeps the `model` and `effort` it was proposed with. The card's prompt keeps saying them, and the first event checks them with `get_session`.
+- **D-62:** whether a compaction, or the tenth wake-up, breaks the chain of automated turns so that the next start is refused.
+
+Not seen live, in the app:
+- a start inside a chain of events, a refused start and its card, and an effort raised by an event (D-64);
+- the 8 and 9 limits;
+- `stop_session` on a running turn, a session gone at «continúa», and archiving and its refusals (D-69);
+- a real `gh`, and a session's `entrega` through a `deliver` hook;
+- a delegation taken back, a profile's `allow` and `alwaysAsk`, and a `merge` under a delegated `publish` (D-67);
+- `--adapt`'s questions answered by a person, a launch from a map, and the hash check at that launch (D-68).

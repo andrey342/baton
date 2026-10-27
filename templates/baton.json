@@ -1,20 +1,50 @@
 {
-  "version": 1,
+  "version": 2,
+  "workspace": "worktree",
+  "sessions": "per-part",
   "base": "main",
   "branchPrefix": "baton/",
+  "branch": { "name": null, "createdBy": "baton" },
+  "repoRunId": "{{yyyymmdd}}-{{run}}",
+  "repos": [],
+  "untrackedPolicy": "stop",
+  "hooks": {
+    "onStart": null,
+    "beforePart": null,
+    "afterPart": null,
+    "snapshot": null,
+    "deliver": null,
+    "onClose": null,
+    "afterMerge": null
+  },
   "delivery": "branch",
+  "deliveryOrder": [],
+  "merge": "never",
   "humanBeforePublish": false,
+  "authority": { "allow": [], "alwaysAsk": [], "neverDelegate": ["ui-design", "install-software"] },
   "gates": [],
   "install": "",
   "reviewRounds": 3,
+  "models": {
+    "start": {
+      "implementer": { "model": "inherit", "effort": "high" },
+      "reviewer": { "model": "sonnet", "effort": "medium" },
+      "critic": null
+    }
+  },
   "roles": {
-    "implementer": { "model": "inherit", "effort": "high", "skills": [] },
-    "reviewer": { "model": "sonnet", "effort": "medium", "skills": [] }
+    "implementer": { "skills": [] },
+    "reviewer": { "skills": [] }
   },
   "modes": {
     "cheap": { "implementer": { "model": "sonnet", "effort": "medium" }, "reviewer": { "model": "sonnet", "effort": "low" } },
     "thorough": { "implementer": { "model": "opus", "effort": "high" }, "reviewer": { "model": "opus", "effort": "high" } }
   },
+  "reviewer": { "neverRun": [] },
+  "resources": {},
+  "plan": { "partHeading": null, "decided": [] },
+  "closing": [],
+  "localCi": { "workflows": [], "when": "ciUnavailable", "comment": false },
   "rules": [],
   "notes": ""
 }

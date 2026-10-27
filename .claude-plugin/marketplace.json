@@ -6,8 +6,8 @@
     {
       "name": "baton",
       "source": "./",
-      "description": "Run a written plan part by part from one chat: a nested session implements, a fresh read-only subagent reviews, the chat supervises and delivers the way the repo asks.",
-      "version": "0.2.0"
+      "description": "Run a written plan part by part from one chat: a model per part that you approve, a session per part, a fresh read-only reviewer, and delivery the way the repos ask.",
+      "version": "0.3.0"
     }
   ]
 }

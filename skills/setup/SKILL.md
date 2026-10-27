@@ -24,7 +24,7 @@ Talk to the person in the language of the conversation. When the conversation ho
    - the repo's own processes that go into `notes`, and any rule that overrides baton;
    - `permissions.deny` rules and hooks the implementer session will meet (not changed). When `.claude/settings.local.json` has `permissions.deny` or `enabledPlugins`, add one line: a plan's worktree holds only committed files, so those local rules (and a plugin enabled only there) do not reach the implementer session; commit them in `.claude/settings.json` if they must.
 4. **One question at most**, only when detect.md's rules leave something ambiguous that changes a run. Ask it with AskUserQuestion with two or three options; if no one can answer (a non-interactive run), take the option the repo's precedent favours and say so.
-5. **Write** `.claude/baton.json` with `version: 1` and only the keys that were detected or the person set (never the defaults), 2-space JSON, with the Write tool. With `--show`, print the JSON instead and stop.
+5. **Write** `.claude/baton.json` with `version: 2` and only the keys that were detected or the person set (never the defaults), 2-space JSON, with the Write tool. With `--show`, print the JSON instead and stop.
 6. **Plan template.** With `--template`, copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.md` as said above, unchanged. Without it, end with one line offering it ("`/baton:setup --template` adds the plan template to docs/plans/").
 7. **Close** with one line: the profile is the repo's to commit or not, and `/baton:plan` or `/baton:run <plan.md>` is next.
 

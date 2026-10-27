@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "plan": "docs/plans/plan-fase-3-servidor-mcp-remoto.md",
+  "hash": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+  "madeAt": "2026-11-01T09:40:00Z",
+  "title": "Fase 3 — Servidor MCP remoto y autorización de clientes",
+  "partHeading": "^(?:\\d+(?:\\.\\d+)*\\s+)?(?<id>P\\d+|CA)\\b",
+  "decided": [
+    { "section": "§5", "heading": "5. Decisiones de arquitectura (tomadas)", "lines": [208, 233] },
+    { "section": "§13", "heading": "13. Decisiones", "lines": [801, 829] }
+  ],
+  "parts": [
+    {
+      "id": "P0", "title": "Preflight, run y contrato", "heading": "### 7.0 P0 — Preflight, run y contrato", "lines": [376, 383],
+      "repos": ["root"], "reposFrom": "the partition table, §1",
+      "criteria": ["Gate: verify-grounding.mjs over docs/shared/api-contract/mcp-server.md (exit 0) and the root's documentary commit (step 5)"],
+      "pauses": [{ "before": "P0.2", "text": "Parada: el ejecutor no mueve ni commitea el archivo ajeno; el usuario decide" }],
+      "pauseBefore": false, "pauseDeliver": null
+    },
+    {
+      "id": "CA", "title": "Cierre de la Parte A (backend)", "heading": "### 7.4 Cierre de la Parte A (backend)", "lines": [557, 604],
+      "idFrom": "adapt: the heading has no id the partHeading matches; CA is the one the plan's §0 order and the profile use",
+      "repos": ["backend", "frontend"], "reposFrom": "the paths in its steps (backend gates, frontend Playwright specs)",
+      "criteria": ["Steps 1 to 4 green: the full CI list and the Playwright specs, msg-back-review, the Critic over the backend snapshot, commit"],
+      "pauses": [], "pauseBefore": false, "pauseDeliver": null
+    },
+    {
+      "id": "P4", "title": "Frontend", "heading": "### 7.5 P4 — Frontend", "lines": [605, 635],
+      "repos": ["frontend"], "reposFrom": "the partition table, §1",
+      "criteria": ["Aceptación P4: exit 0; msg-front-code-review y msg-front-design sin hallazgos abiertos; commit «fase3-p4»"],
+      "pauses": [{ "before": "P4.0", "text": "P4.0 — Diseño primero (parada b)" }],
+      "pauseBefore": true, "pauseText": "§7.4 step 5: Pausa obligatoria: no se empieza P4 sin el OK del usuario (the pause A→B)", "pauseDeliver": ["backend"]
+    }
+  ],
+  "deliveries": [{ "at": "the pause before P4", "repos": ["backend"], "from": "§7.4 step 4: «Commit y, solo con autorización, push del backend»" }],
+  "doubts": [
+    { "question": "Which id for «7.4 Cierre de la Parte A»?", "reading": "CA, as the profile's partHeading names it", "answeredBy": "the reading (no one to ask)" }
+  ],
+  "proposedBatonLine": "baton: mode=normal delivery=pr decided=§5,§13,§3.4"
+}
