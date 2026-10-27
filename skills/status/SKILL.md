@@ -35,7 +35,7 @@ For an open run that is `running` or `waiting` (D10). A `proposed` run has nothi
 2. **Act, in one message:**
    - `mcp__ccd_session_mgmt__stop_session` for each of those sessions that is running a turn now, to stop it at once;
    - then, to each of them, SendMessage "baton · pausa: guarda tu estado en `pause-<X>.md` (qué está hecho, qué está a medias, qué toca después), no uses computer use y termina con status: paused", each adding 1 to `messagesSinceUser`;
-   - Write `state.json`: `status: paused`, those parts `paused`, `paused: { "at", "from": <the status before>, "waiting": <the waiting before>, "parts": [<ids>] }` and `waiting: null`;
+   - Write `state.json`: `status: paused`, those parts `paused`, `paused: { "at", "from": <the status before>, "waiting": <the waiting before>, "parts": [<ids>], "next": null, "held": [] }` (`next` and `held` are filled by `/baton:event` while paused; the whole shape is in `docs/DESIGN.es.md`) and `waiting: null`;
    - a `decisions.md` row "paused by the person: <parts>".
    
    A part with no session at work gets no message, and its line says so. A card not clicked stays as it is, and `continue` follows "a card still waiting" in `/baton:event` for it, never a new start on a guess. A session that is gone is started again on `continue`, from its brief.

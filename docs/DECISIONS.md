@@ -378,3 +378,46 @@ This keeps a margin below the app's 10, where 0.2 held at the 10th.
 - after review r2: the last part closed while paused, and «continúa» delivered it; a next part with the plan's own pause got that pause's question on «continúa», not a start.
 
 Not seen live: `stop_session` on a real turn (and whether the app delivers a message right after it), a session gone at «continúa», archiving at all, and its refusals.
+
+**D-70 · The 0.3 round, the documentation and the release (part 9).**
+
+**Where the round ran.** In the multi-repo lab under the run folder (`probes/round9`), never in `C:\MSG`, as the person settled («no quiero pausas»). This session may not start sessions, so the app was replaced in two ways (`probes-9.md`):
+- **The coordinator** was one `claude -p` conversation, resumed for every turn, with a stub for the session tools and a stand-in `gh`.
+- **Each part's session** was a real `claude -p` session, started with the model, effort and prompt of the stub's `start_session` call and resumed with each message the coordinator wrote.
+
+What only the app can show stays "not seen live".
+
+**The plan:** four parts in three repos.
+- A on Haiku, B and C on Sonnet, D on Haiku, after the person lowered A and D in the proposal.
+- A delegated pause inside B, given with the yes.
+- A question only the person could answer, in C (UI text).
+- «para» while D was at work, then «continúa».
+- A pull request per repo, in `deliveryOrder`.
+
+**Results:**
+- **Presses:** 6: the command, a change with the delegation, the yes, C's answer, «para» and «continúa».
+- **Wakes per part:** A 1, B 2, C 2, D 2.
+- **Starts:** 4, none refused and no card.
+- **Messages to sessions:** 3.
+- **Cost by role** at the official list prices, the table D-45 used: 2.88 USD for the coordinator over 13 turns (82 %) and 0.63 USD for the four sessions, reviewers included (18 %); 3.51 USD in all.
+- **What happened along the way:**
+  - A change and a yes in one message only revised the table, so the yes took one more press.
+  - The pausa reached D after its `done`. The coordinator closed D during the pause, kept `paused.next: "deliver"`, recorded D's late `paused`, and delivered on «continúa».
+
+**The documentation:**
+- **README:** the 0.3 flow (proposal, a session per part, checking, pause and continue, the close), the plan format with `--adapt`, the authority table with delegation, the v2 profile with `workspace`, `repos` and `hooks`, the round's results, and what was not seen live.
+- **`docs/DESIGN.es.md`:**
+  - design B is now the default, replacing D-02, D-07 and D-08;
+  - the whole shape of `state.paused` (`at`, `from`, `waiting`, `parts`, `next`, `held`);
+  - why state files are written with Write and Edit only: in Windows, two part-8 probes left cp1252 bytes in them through the shell, and a UTF-8 `json.load` then failed.
+- **`/baton:status` pause** writes `next: null` and `held: []` from the start.
+
+**The release.** `version` is `0.3.0` in `.claude-plugin/plugin.json` and `marketplace.json`, and the README says 0.3. The coordinator merges into `main` and pushes; this session does not.
+
+Not seen live, in the app:
+- a refused start and its card;
+- the 8 and 9 limits;
+- `stop_session` on a running turn, and archiving;
+- a real `gh`, and a session's `entrega` through a `deliver` hook;
+- a delegation taken back, and a profile's `allow` and `alwaysAsk`;
+- `--adapt`'s questions answered by a person, and a launch from a map.

@@ -1,12 +1,51 @@
 # baton: el diseño
 
-baton ejecuta un plan escrito por partes desde un chat de la app de escritorio de Claude, con las sesiones anidadas de la propia app y sin código propio. Este documento explica el diseño que se eligió (el A), cómo usa las sesiones nativas, qué conserva de foreman y por qué, las alternativas descartadas y las limitaciones conocidas. Las decisiones, con su porqué, están en [`DECISIONS.md`](DECISIONS.md): D-01…D-14 se fijaron al elegir el diseño y las demás salieron al construirlo y probarlo.
+baton ejecuta un plan escrito por partes desde un chat de la app de escritorio de Claude, con las sesiones anidadas de la propia app y sin código propio. Este documento explica el diseño de la 0.3 (una sesión por parte), el de la 0.2 (el A, una sesión para todo el plan) del que viene, cómo usa las sesiones nativas, qué conserva de foreman y por qué, las alternativas descartadas y las limitaciones conocidas. Las decisiones, con su porqué, están en [`DECISIONS.md`](DECISIONS.md): D-01…D-14 se fijaron al elegir el diseño A, D-58…D-70 son las de la 0.3, y las demás salieron al construir y probar.
+
+## La 0.3: una sesión por parte
+
+En la 0.3 el diseño B pasa a ser el de por defecto (`sessions: "per-part"`), y sustituye a D-02 (una sola sesión implementadora), D-07 (los modelos fijos del perfil) y D-08 (un solo repo y un worktree). La 0.2 sigue disponible con `sessions: "per-plan"`, y los runs de la 0.2 (`state.json` versión 1) se siguen leyendo.
+
+- **Tres momentos** (D-58). La **propuesta**: `/baton:run` lee el plan y propone para cada parte el modelo y el esfuerzo del implementador, del revisor y del Critic, con el motivo y la sección del plan en que se apoya, y no crea nada. El **lanzamiento**, en el turno del sí del usuario: ramas, brief y la sesión de la primera parte. Los **eventos**: cada fin de turno de una parte.
+- **Una sesión nueva por parte** (D-59), con su modelo y su esfuerzo, arrancada por el evento que cierra la parte anterior. Si la app no deja arrancarla (un turno automático tras una cadena rota), el coordinador propone una tarjeta y el usuario la pulsa (D-60).
+- **El coordinador verifica** (D-61): árbol limpio en cada repo, commits, revisiones guardadas tal cual con su `### Criteria` y su `### Gates`, el Critic en PASS, las desviaciones con evidencia y la línea `Model:` de cada revisión.
+- **Varios repos y el checkout** (D-62): `repos` del perfil, `workspace: checkout` (una sola ejecución abierta por checkout), `deliveryOrder`, el snapshot de submódulos y las entregas parciales en una pausa.
+- **El proceso del repo** (D-66): hooks (`onStart`, `beforePart`, `afterPart`, `snapshot`, `deliver`, `onClose`, `afterMerge`) del coordinador o de la sesión, `untrackedPolicy` y el cierre (`/baton:status close`).
+- **La autoridad** (D-67): filas con id, `authority.allow`, `alwaysAsk` y `neverDelegate`, la delegación durante el run (y con el sí de la propuesta), `humanBeforePublish: "ask-once"` y los choques con las decisiones de runs anteriores.
+- **El plan tolerante** (D-68): `partHeading`, `decided`, la aceptación en línea, las pausas dentro de una parte y `/baton:plan --adapt`, que escribe un mapa con el hash del plan sin tocarlo.
+- **Pausa y continuación** (D-69): «para» pausa y «stop» termina, el aviso a los 8 mensajes o despertares y la parada a los 9, retomar desde otro chat, y archivar las sesiones solo con el sí del usuario.
+
+### El estado de una pausa
+
+`state.paused` existe solo mientras el run está `paused` y tiene esta forma:
+
+```json
+"paused": {
+  "at": "2026-11-01T10:40:00Z",
+  "from": "running",
+  "waiting": null,
+  "parts": ["B"],
+  "next": null,
+  "held": []
+}
+```
+
+- `from` y `waiting`: el estado y la pregunta que había al pausar, que «continúa» restaura.
+- `parts`: las partes que estaban trabajando y recibieron `baton · pausa`.
+- `next`: lo que sigue a una parte que cerró con `done` durante la pausa, el id de la parte siguiente o `"deliver"` si era la última. «continúa» lo trata como cualquier `done`: la pausa propia del plan con su entrega parcial, el arranque de la parte siguiente o la entrega.
+- `held`: los resultados que llegaron durante la pausa y no eran un `done` válido, que «continúa» trata como si acabaran de llegar.
+
+### Archivos de estado en Windows
+
+El coordinador escribe `state.json`, `decisions.md` y `settled.md` **solo con Write y Edit**, que guardan UTF-8. En las sondas de la parte 8, dos coordinadores dejaron bytes de cp1252 («ú», ««») en esos archivos en Windows, y un `json.load` en UTF-8 dejó de leerlos. Ni una redirección del shell (`>`, `Out-File`, `Set-Content` sin `-Encoding utf8`) ni un script deben escribirlos. La regla ya estaba en las skills («files changed with Write and Edit only»): la 0.3 la repite aquí por esa razón. Un archivo que ya tiene esos bytes se puede leer como latin-1 y reescribir con Write.
 
 ## El problema
 
 Con planes largos, el usuario hacía de mensajero entre chats: copiaba rutas, pegaba «aplica esta revisión», autorizaba cada fase y vigilaba qué chat se había parado en un diálogo. foreman (v0.2) lo resolvió con código: un vigilante de 30 segundos, una máquina de estados, procesos `claude -p` para el revisor y el supervisor, hilos `--bg` y un panel propio. Funcionaba, pero con mucha superficie: guards, caché de marketplace, carreras entre el vigilante y la app, permisos de cada proceso. baton busca lo mismo con el 10 % de la complejidad apoyándose en lo que la app ya hace.
 
-## Diseño A: un coordinador, una sesión implementadora por plan
+## Diseño A (0.2): un coordinador, una sesión implementadora por plan
+
+Lo que sigue describe la 0.2. En la 0.3 es la opción `sessions: "per-plan"`.
 
 - **El coordinador es el chat del usuario.** Con `/baton:run` lee las reglas del repo, crea el worktree y la rama del plan, escribe el estado y un solo brief con todas las partes, y arranca **una** sesión implementadora anidada en modo `auto`, con el worktree como carpeta. Cada aviso posterior lo atiende con `/baton:event`.
 - **La sesión implementadora** sigue `prompts/implementer.md` y la parte del brief que nombra cada mensaje, con su commit de inicio: implementa, hace commits, ejecuta los gates y lanza un **revisor fresco** como subagente de solo lectura (`agents/reviewer.md`). Guarda cada revisión, aplica los hallazgos hasta tres rondas sin mandar ningún mensaje al coordinador, y termina el turno con un bloque `baton-result`.
@@ -47,13 +86,15 @@ En las pruebas de v0.1 el chat coordinador se llevó el 73 % del coste de cada p
 
 ## Alternativas descartadas
 
-- **B · Una sesión por parte, creadas todas al lanzar.** Cada parte tendría contexto limpio, pero todas las sesiones tendrían que crearse en el turno del lanzamiento (límite 1), y cada una empezaría a trabajar sin esperar a la anterior, salvo que se la frenara con instrucciones. Queda como evolución con `fresh=true` si el contexto de planes largos lo pide.
+- **B · Una sesión por parte, creadas todas al lanzar.** Cada parte tendría contexto limpio, pero todas las sesiones tendrían que crearse en el turno del lanzamiento (límite 1), y cada una empezaría a trabajar sin esperar a la anterior, salvo que se la frenara con instrucciones. La 0.3 lo resuelve de otra forma: cada sesión la arranca el evento que cierra la parte anterior, y cuando la app no deja arrancarla queda una tarjeta (D-59, D-60).
 - **C · Todo dentro de la sesión del usuario** (implementar y revisar con subagentes, sin sesión anidada). Sin mensajes entre sesiones, pero el chat del usuario se llenaría con todo el trabajo y se compactaría pronto, que es justo lo que el usuario quería evitar (patrón P5 de foreman).
 
 ## Limitaciones conocidas
 
 - El lanzamiento lo teclea el usuario; otra sesión no puede lanzarlo.
-- Un plan muy largo sin pausas ni preguntas pide una palabra cada 9 mensajes.
+- Un plan muy largo sin pausas ni preguntas pide una palabra cada 9 mensajes o despertares, con un aviso a los 8.
+- Una sesión que la app no deja arrancar en un turno automático queda como tarjeta: hace falta un clic.
+- Nada de la app se vio en vivo en la 0.3: la ronda de la parte 9 corrió en el laboratorio con sesiones `claude -p` reales y las herramientas de sesión de la app simuladas (D-70).
 - Las carpetas vacías de los worktrees se quedan mientras vive su sesión implementadora (D-35).
 - `settings.local.json` no llega al worktree (D-31).
 - Los diálogos de permiso de la sesión implementadora solo los ve la barra lateral.
