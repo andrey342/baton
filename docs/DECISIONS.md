@@ -295,9 +295,9 @@ The launch copies `authority` and `humanBeforePublish` into the state.
 
 **`humanBeforePublish: "ask-once"`.** One question at the run's first publication, partial or final, lists everything the run will publish: each push in order, each pull request with its title and body, the sibling lines and comments, and local-CI comments. The list waits in `publishList`. The yes moves it into `publishApproved`, and later publications in that list go without asking. Merge is never in it.
 
-**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs before the yes, and `/baton:plan` does so before it writes. The answers are read from `settled.md`, which holds every one of them verbatim (D-37), so `decisions.md` is not read for this.
+**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs before the yes, and `/baton:plan` does so before it writes. Both read, whole, the `settled.md` and `decisions.md` of the five most recent earlier runs. `settled.md` holds the answers baton sent to a session (D-37) and the delegations. `decisions.md` holds the table's approval, the answers to pauses and publications, and the decisions of a run coordinated by hand, written in its own words.
 
-**Probes** (`probes-6.md`, 3.40 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
+**Probes** (`probes-6.md`, 3.89 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
 - «autorizo el reset y push/PR; el diseño también» delegated `destructive` (the reset) and `publish` (push/PR), and refused the design in one line ("`ui-design` está en `neverDelegate`");
 - a pause inside a part, the reset, was decided under that delegation with its row and no question;
 - the design pause was escalated with buttons;
@@ -306,6 +306,14 @@ The launch copies `authority` and `humanBeforePublish` into the state.
 - the final delivery published frontend and root, with the snapshot and the sibling pull requests, without another question;
 - after review r1: with the pause and `publish` delegated under `ask-once`, A's `done` published backend with no question and started B, with both "decided under delegation" rows;
 - a delegation given with the proposal's yes reached the launched state and the new `settled.md`;
-- a delegated pause whose publishing was not delegated asked the publishing alone, as the pause, with the whole-list button and nothing pushed.
+- a delegated pause whose publishing was not delegated asked the publishing alone, as the pause, with the whole-list button and nothing pushed;
+- after review r2: when the session's partial delivery (a `deliver` hook `by: session`) came back at a delegated pause, `closing` ended and the next part started with no question;
+- a dry-run proposal showed its clash with an earlier run coordinated by hand, quoted from that run's prose `settled.md` and `decisions.md`.
 
-Seen and fixed: the list waiting for the yes has its own field; a partial pull request's body is a short note, with the report added later as a comment; and the delegated pause's publishing question has its kind and buttons spelled out. Not seen live: a real `gh`, a delegation taken back, a clash with an earlier run's answers, a profile's `allow` and `alwaysAsk`, and a `merge` under a delegated `publish`.
+Seen and fixed:
+- the list waiting for the yes has its own field;
+- a partial pull request's body is a short note, with the report added later as a comment;
+- the delegated pause's publishing question has its kind and buttons spelled out;
+- the earlier runs' files are found with a Glob and read whole, since a Grep glob with a slash matched nothing and hand-run files have no fixed format.
+
+Not seen live: a real `gh`, a delegation taken back, a profile's `allow` and `alwaysAsk`, a `merge` under a delegated `publish`, and a real session running an `entrega`.
