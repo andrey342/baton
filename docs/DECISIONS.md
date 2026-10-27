@@ -226,3 +226,5 @@ Probes (0.62 USD):
 - a lab part on root and backend was taken as done with no snapshot asked for;
 - a `merge` delivery across the lab merged backend into `develop` and made the snapshot at that merge commit before the root merged into `main`;
 - a one-repo worktree run, once its worktree was removed, merged into the checkout's `main`.
+
+Review r2 found that a partial `merge` in a checkout run left the repo on its base, so later parts would commit straight onto it. Now a repo merged by a partial delivery goes straight back to the plan's branch, and the next part starts from its head. A worktree run's partial merge never switches anything. Probe (0.27 USD): at a pause naming backend, backend merged into `develop` and was back on `baton/lab3`, and the run waited at the pause with the outcome in its question.

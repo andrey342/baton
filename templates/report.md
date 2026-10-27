@@ -5,7 +5,7 @@
 - **Repos** (several only): `root` from `<base>` (<sha>) · `backend` from `<base>` (<sha>) · …
 - **Delivery:** <branch left as is | pull request <url> (created | updated) | merged locally into <base> | none>, per repo when there are several
 - **Delivery order** (several repos only): backend → frontend → root, snapshot `<sha>` before root · partial at the pause before <part>: <repos>
-- **Back to the base** (checkout only, once you have merged): `git -C <path> switch <base>` in each repo
+- **Back to the base** (checkout only, when the repos stay on the plan's branch, once you have merged): `git -C <path> switch <base>` in each repo
 - **Started / finished:** <date time> → <date time>
 
 ## Parts
