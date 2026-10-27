@@ -13,7 +13,7 @@ The app's tools named below (`get_session`, `stop_session`) often arrive deferre
 
 ## Which runs
 
-Read every `.claude/runs/*/state.json` under `git rev-parse --show-toplevel`. A run is `version` 1 (baton 0.2; no `version` counts as 1) or 2: read both as "State versions" in `${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md` says, and never rewrite a v1 run as v2. Open runs are those with `status` `running`, `waiting`, `done-not-delivered` or `dry-run`, and in v2 also `proposed`, `paused` or `closing`. With a run id, only that one; without one, an action applies to the only open run (with several, list them and ask which).
+Read every `.claude/runs/*/state.json` under `git rev-parse --show-toplevel`. A run is `version` 1 (baton 0.2; no `version` counts as 1) or 2: read both as "State versions" in `${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md` says, and never rewrite a v1 run as v2. Open runs are those with `status` `running`, `waiting`, `done-not-delivered` or `dry-run`, and in v2 also `proposed`, `paused` or `closing`. With a run id, only that one; without one, an action applies to the only open run (with several, list them and ask which). For `close`, the runs it can apply to are the **closable** ones instead: `delivered` or `stopped` without `closedAt`.
 
 ## No action: report
 
@@ -33,7 +33,11 @@ Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.m
 
 ## close
 
-For a `delivered` run without `closedAt`, once the person says they merged: follow "The close" in `${CLAUDE_PLUGIN_ROOT}/skills/run/hooks.md`, which runs the repo's `onClose` and `afterMerge`, takes each repo of a checkout run back to its base, and removes the `excluded` lines. This turn is the person's, so a session the close needs may be started. Any other run: say what it waits for instead.
+For the closable run (one without a run id; with several, list them and ask which), follow "The close" in `${CLAUDE_PLUGIN_ROOT}/skills/run/hooks.md`:
+- a `delivered` run, once the person says they merged: the repo's `onClose` and `afterMerge`, then each repo of a checkout run back to its base, and the `excluded` lines removed;
+- a `stopped` run: nothing was merged, so no `onClose` or `afterMerge`, only the repos back to their bases and the exclusions removed.
+
+This turn is the person's, so a session the close needs may be started. A run that is not closable: say what it waits for instead.
 
 ## stop
 

@@ -69,7 +69,7 @@
   "branchCreatedBy": "baton",
   "untrackedPolicy": "exclude-local",
   "closedAt": null,
-  "closing": { "steps": [], "sessions": [] },
+  "closing": { "phase": null, "steps": [], "sessions": [] },
   "messagesSinceUser": 1,
   "wakesSinceUser": 3,
   "lastSentAt": "2026-11-01T11:00:00Z",

@@ -257,3 +257,10 @@ The profile's `branch.name` takes the markers too.
 - the close ran `onClose`, removed the exclude line and emptied `state.excluded`.
 
 Seen and fixed: the close left the root on the branch because its plain `status` shows the submodule pointers. It now checks the root with `--ignore-submodules=all`. Not probed: `deliver`, `snapshot`, `afterMerge` and `beforePart` run by a session, which need a live session, and `part:<id>`.
+
+Review r1 of part 5 found that the close was not wired into the run's states. Now:
+- **A closable run** is one `delivered` or `stopped` without `closedAt`, and `/baton:status close` picks among those. A `stopped` run's close only takes the repos back to their bases and removes the exclusions: nothing was merged, so no `onClose` or `afterMerge`.
+- **A session hook of the close** puts the run in `closing` with `closing.phase: "close"`. Its result comes back as an event, and the session can be the last part's or one named `baton-<run12>-close`. Only then do the switch back and the clean-up run, never under a session still at work. A `deliver` hook's wait is `closing.phase: "deliver"`.
+- **A checkout run** that is `delivered` or `stopped` without `closedAt`, while it still has `excluded` lines or a repo on its branch, blocks a new run in that checkout until it is closed.
+
+Probes (0.46 USD): a dry run stopped on such a `lab5`, naming its exclude line and its branch. `/baton:status lab5 close` then took root and backend back to their bases, removed the exclude line, emptied `state.excluded` and set `closedAt`, and ran no `onClose`.

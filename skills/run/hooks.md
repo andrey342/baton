@@ -61,15 +61,17 @@ A proposal or dry run only says what would happen.
 
 ## The close
 
-The close happens:
-- when the person says the work is merged ("merged", "ya está mergeado", "cierra", `/baton:status close`);
-- or right after a `merge` delivery that baton made itself.
+**Which runs** it closes: a run `delivered` or `stopped` without `closedAt`. It happens:
+- for a `delivered` run, when the person says the work is merged ("merged", "ya está mergeado", "cierra", `/baton:status close`), or right after a `merge` delivery that baton made itself;
+- for a `stopped` run, when the person asks to close it. Nothing was merged, so `onClose` and `afterMerge` do not run. Only steps 2 to 4 do: the repos back to their bases and the exclusions out.
 
-In one or two messages, in this order:
+Until then, such a run still holds a checkout: its repos may be on its branch and its lines in the exclude files, so `/baton:run` step 10 counts it as open.
+
+In this order:
 1. `onClose`, then `afterMerge`.
    - A coordinator hook runs.
-   - A session hook goes as a message to the last part's session: `baton · after merge: <its text>`. When it pushes (a gitlink bump, say), it goes as `baton · entrega: <repos> · after merge: <its text>`, since only an `entrega` lets a session push. That session's next result closes the close.
-   - When that session no longer exists, start one for it, as `/baton:event` "The next part's session" says (this turn is the person's), named `baton-<run12>-close`.
+   - A session hook goes as a message to the last part's session: `baton · after merge: <its text>`. When it pushes (a gitlink bump, say), it goes as `baton · entrega: <repos> · after merge: <its text>`, since only an `entrega` lets a session push. When that session no longer exists, start one for it, as `/baton:event` "The next part's session" says (this turn is the person's), named `baton-<run12>-close`.
+   - With a session hook, the close waits for it. Set `status: closing` with `closing.phase: "close"`, and end the turn. Steps 2 to 4 must not run under a session that is still working in the checkout. That session's next result is an event (`/baton:event` finds the run by `closing` and the session by its name). A `done` there goes on with steps 2 to 4. A `blocked` or `failed` escalates, and the run stays `closing`.
 2. In a checkout run, each repo goes back to its base, `git -C <path> switch <base>`, when its tree is clean: submodules first, then a root that holds them. The root's check is `status --porcelain --ignore-submodules=all`, as everywhere in a run, since its gitlinks follow the submodules. Otherwise say which stays on the branch.
 3. Each `state.excluded` line is removed from its exclude file with Edit, exactly that line, and `state.excluded` empties.
-4. `state.closedAt`, a `decisions.md` row "closed", and one line.
+4. `state.closedAt`, the status back to what it was (`delivered` or `stopped`), `closing.phase` cleared, a `decisions.md` row "closed", and one line.
