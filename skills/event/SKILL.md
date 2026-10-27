@@ -36,7 +36,7 @@ Run statuses: `running`, `waiting`, `done-not-delivered`, `delivered`, `stopped`
 The run is the one whose `state.json` (`status` `running`, `waiting` or `closing`) names the event's session in `worker.name` or `worker.sessionId` (v1), or in a part's `session.name` or `session.id` (v2). A session named `baton-<run12>-<part>` that the state does not hold yet (a card the person started, or a start whose id was never written) belongs to that run and part: write its id into the part's `session` with this event's state and, when the run was waiting on that card (`waiting.kind: "start"`), set `status: running` and `waiting: null`. If this conversation does not show the run's paths (after a compaction, say), Glob `.claude/runs/*/state.json` from the checkout first. Then, in one message:
 
 - Read `runDir/state.json`, and `workerRunDir/result-<current>.md`; with a `done`, also `runDir/decisions.md` (the clean-tree rule below looks at the part's last rows);
-- for each repo of the part (v1: the worktree): `git -C <path> log --oneline <startSha>..HEAD` and `git -C <path> status --porcelain`;
+- for each repo of the part (v1: the worktree): `git -C <path> log --oneline <startSha>..HEAD` and `git -C <path> status --porcelain` (for a root that holds other repos of the run as submodules, `git -C <root> status --porcelain --ignore-submodules=all`: each submodule is checked on its own, and the root's gitlinks move as they work, until the delivery snapshots them);
 - when the root repo holds other repos of the part as submodules and the part changed them: `git -C <root> ls-tree HEAD <sub path>` and `git -C <sub> rev-parse HEAD`, for each;
 - Grep, pattern `^(Verdict|Veredicto):|^Model:|^### (F-|Criteria|Gates)`, in workerRunDir with glob `review-<current>-r*.md`, output `content`: every round's verdict, the model it ran on, its findings' headings, and whether its sections are there;
 - when the part has a `critic` row: the same Grep with glob `critic-<current>-r*.md`;
@@ -44,7 +44,7 @@ The run is the one whose `state.json` (`status` `running`, `waiting` or `closing
 - `date -u +%Y-%m-%dT%H:%M:%SZ`;
 - when the event quotes a status other than `done` and `supervisor.md` is not yet in this conversation: Read `PLUGIN/prompts/supervisor.md`;
 - when it quotes `done` in a version 2 run and `models.md` is not yet in this conversation: Read `PLUGIN/prompts/models.md`;
-- when `current` is the last part: Read `PLUGIN/skills/event/deliver.md` and `PLUGIN/templates/report.md`.
+- when `current` is the last part, or the next part's pause has a `pauseDeliver`: Read `PLUGIN/skills/event/deliver.md` (and `PLUGIN/templates/report.md` for the last part).
 
 ## 2. Decide
 
@@ -63,7 +63,7 @@ By the result's `status`:
   Not blocking, but written down: each review's `Model:` line against the part's approved `reviewer` row (and the Critic's against `critic`). A different model, or no `Model:` line, is a `decisions.md` row ("review r<n> ran on <model>, approved <row>") and a note in the one line.
 
   All checks pass: part X becomes `done` with `endSha` (each repo's top commit; v1: one), `rounds`, `verdict` and `verified` (`at`, `clean: true`, `reviewerModel`, `deviations`), and its `NO` rounds are logged (below). Then the next part:
-  - it has `pauseBefore`: `status: waiting`, `waiting: { "kind": "pause", "part": "<next>" }`, and escalate "Part <X> done. The plan pauses before part <next>: continue?" with the buttons «Continue with <next>» / «Stop here»;
+  - it has `pauseBefore`: `status: waiting`, `waiting: { "kind": "pause", "part": "<next>" }`, and escalate "Part <X> done. The plan pauses before part <next>: continue?" with the buttons «Continue with <next>» / «Stop here». When the pause has a `pauseDeliver` (the plan's `deliver: <repos>`), first deliver those repos, in `deliveryOrder`, as `deliver.md` says for a partial delivery, and say the outcome in the question;
   - otherwise it becomes `working` with `startSha` per repo (X's `endSha` for the repos X touched, the `rev-parse` read for the others), `current` moves to it, and it starts as "The next part's session" says (a v1 or `per-plan` run: the message "baton · part <next> from <startSha>: read and follow `<workerRunDir>/brief.md`." to the same session, with `<repo> <sha>` per repo in v2);
   - no part left: the delivery, as `deliver.md` says (it continues this turn).
 

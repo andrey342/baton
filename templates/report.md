@@ -1,15 +1,18 @@
 # <Plan title> — baton report
 
 - **Plan:** `<plan path>` · iteration <n> · mode <mode>
-- **Branch:** `<branch>` from `<base>` (<base sha>) · worktree `<path>` (removed | kept: <why>)
-- **Delivery:** <branch left as is | pull request <url> (created | updated) | merged locally into <base> | none>
+- **Branch:** `<branch>` from `<base>` (<base sha>) · worktree `<path>` (removed | kept: <why>) | checkout (no worktree)
+- **Repos** (several only): `root` from `<base>` (<sha>) · `backend` from `<base>` (<sha>) · …
+- **Delivery:** <branch left as is | pull request <url> (created | updated) | merged locally into <base> | none>, per repo when there are several
+- **Delivery order** (several repos only): backend → frontend → root, snapshot `<sha>` before root · partial at the pause before <part>: <repos>
+- **Back to the base** (checkout only, once you have merged): `git -C <path> switch <base>` in each repo
 - **Started / finished:** <date time> → <date time>
 
 ## Parts
 
 ### Part A — <title>
 - **Result:** done · review r1 NO (2 findings) → r2 OK
-- **Commits:** `<sha>` <subject> · `<sha>` <subject>
+- **Commits:** `<sha>` <subject> · `<sha>` <subject> (per repo when the part has several: `backend <sha>` …)
 - **Gates:** `npm test` → 0
 - **Summary:** <the implementer's one or two lines>
 

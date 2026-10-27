@@ -26,7 +26,7 @@
   "gates": ["npm test"],
   "install": "npm ci",
   "reviewRounds": 3,
-  "delivery": { "mode": "pr", "why": "CLAUDE.md asks for a pull request", "order": ["backend", "root"], "prs": [], "url": null, "comment": null, "worktree": null },
+  "delivery": { "mode": "pr", "why": "CLAUDE.md asks for a pull request", "order": ["backend", "root"], "repos": {}, "partial": [], "prs": [], "url": null, "comment": null, "worktree": null },
   "parts": [
     {
       "id": "P1", "title": "First piece", "repos": ["root"], "status": "done",
@@ -50,7 +50,7 @@
       "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false, "verified": null
     },
     {
-      "id": "P3", "title": "Last piece", "repos": ["root"], "status": "pending", "pauseBefore": true,
+      "id": "P3", "title": "Last piece", "repos": ["root"], "status": "pending", "pauseBefore": true, "pauseDeliver": ["backend"],
       "implementer": { "model": "sonnet", "effort": "high", "skills": [], "reason": "Documentation with the design already chosen" },
       "reviewer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Documentation" },
       "critic": null, "weight": "M", "uses": [], "pauses": [],

@@ -19,7 +19,7 @@ Read every `.claude/runs/*/state.json` under `git rev-parse --show-toplevel`. A 
 
 For each open run, and the last finished one, a few lines:
 
-- the title, the status, the branch, the iteration and the mode;
+- the title, the status, the branch (with several repos, each repo's branch and base, and `workspace: checkout` when the run works in this checkout), the iteration and the mode;
 - the parts: `✓ A <title> (review r2 OK)`, `● B <title> (at work)`, `○ C <title> (pause before)`;
 - what waits for the person, in full, when `waiting` is set, and how to answer (reply in this chat, or the button offered);
 - the implementer session as a link, `[baton · <title>](#local_<id>)`, and whether it still exists (`mcp__ccd_session_mgmt__get_session`, when you have it): v1, `worker`; v2, the `session` of each part that has one, with the part's implementer model and effort;
@@ -36,4 +36,4 @@ Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.m
 1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`.
 2. If the implementer session (v1 `worker`, v2 the current part's `session`) is working, stop its turn with `mcp__ccd_session_mgmt__stop_session` when you have it; never archive or delete it.
 3. Add a row to `decisions.md`: stopped by the person (a `proposed` run may have none yet: Write it with the header `| When | Part | Stop | Decision | Why |` and its separator first).
-4. Say what stays: the branch, the worktree with its path, and the commits so far (`git log --oneline <baseSha>..<branch>`). To remove the worktree yourself later: `git worktree remove .claude/worktrees/baton-<run>`. Nothing is deleted.
+4. Say what stays: the branch, the worktree with its path, and the commits so far (`git log --oneline <baseSha>..<branch>`, one per repo with several). To remove the worktree yourself later: `git worktree remove .claude/worktrees/baton-<run>`. A checkout run has no worktree: each repo stays on the plan's branch, and `git -C <path> switch <base>` takes it back. Nothing is deleted.

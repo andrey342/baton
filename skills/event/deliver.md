@@ -1,46 +1,55 @@
 # Delivering a baton run
 
-Read by the coordinator from `/baton:event` when the last part is done, or when the person answers «Stop here» at a pause. PLUGIN is the plugin folder that skill names. Its rules hold here: batches (independent calls in one message), one shell command per call, files changed with Write and Edit only, nothing destructive. Every command runs from the checkout.
+Read by the coordinator from `/baton:event` when the last part is done, when the person answers «Stop here» at a pause, and for a **partial delivery** when a pause names repos to deliver first (its `pauseDeliver`, D5). PLUGIN is the plugin folder that skill names. Its rules hold here: batches (independent calls in one message), one shell command per call, files changed with Write and Edit only, nothing destructive. Every command runs from the checkout, with `git -C <path>` for each repo.
+
+**Which repos, in which order.** All the run's repos (a partial delivery: only the ones its pause names), in the profile's `deliveryOrder`; without one, the order of `repos`, with a repo that holds others of the run as submodules after them. A run with one repo delivers `root` alone, exactly as in 0.2. The order goes into `state.delivery.order` and the report.
+
+**The snapshot.** When the root holds other repos of the run as submodules, its gitlinks must point at what they deliver before the root itself is delivered, and only after they are: after their push, for `pr`. Without a `snapshot` hook (D6), you make it: for each such submodule, `git -C <root> ls-tree HEAD <sub path>` against `git -C <sub> rev-parse <branch>`. When any differs, `git -C <root> add -- <the differing sub paths>`, then `git -C <root> commit -m "baton · <run>: submodules at <branch>"`. It is the only commit baton itself makes, and it touches nothing but those gitlinks. A partial delivery that does not include the root makes no snapshot.
 
 ## 1. Gather, in one message
 
-- Copy every file of workerRunDir into runDir: `cp -r <workerRunDir>/. <runDir>/` in Bash, `Copy-Item <workerRunDir>/* <runDir>` in PowerShell;
-- `git log --oneline <baseSha>..<branch>`;
+- In a worktree run, copy every file of workerRunDir into runDir: `cp -r <workerRunDir>/. <runDir>/` in Bash, `Copy-Item <workerRunDir>/* <runDir>` in PowerShell. In a checkout run they are one folder: nothing to copy.
+- For each repo delivered: `git -C <path> log --oneline <baseSha>..<branch>`;
 - Read each part's `result-<part>.md`, `settled.md` (workerRunDir) and `decisions.md` (runDir);
 - Grep, pattern `^(Verdict|Veredicto):|^### F-`, in workerRunDir with glob `review-*.md`, output `content`;
 - Read `.claude/runs/findings.jsonl` (it may not exist) and `PLUGIN/templates/report.md`, unless already in this conversation;
-- for `merge`: `git status --porcelain` and `git branch --show-current`; for `pr`: `gh pr list --head <branch> --state open --json number,url`;
+- for `merge`, in each repo delivered: `git -C <path> status --porcelain` and `git -C <path> branch --show-current`; for `pr`: `gh pr list --head <branch> --state open --json number,url` in each;
+- when the root is delivered and holds submodules of the run: the `ls-tree` and `rev-parse` of the snapshot, for each;
 - `date -u +%Y-%m-%dT%H:%M:%SZ`.
 
 ## 2. The worktree
 
-`git worktree remove .claude/worktrees/baton-<run>`, without `--force`, after the copy. If it refuses (changes not committed) keep it and say so; if git let go of it but its folder stays because the implementer session still holds it, say so (D-35). The branch always stays. `state.delivery.worktree` records `removed`, `removed; its empty folder stays while the implementer session holds it` or `kept: <why>` (D-34).
+In a checkout run there is none: the repos stay on the plan's branch, and the report says how to go back once the person has merged (`git -C <path> switch <base>` in each repo). In a worktree run: `git worktree remove .claude/worktrees/baton-<run>`, without `--force`, after the copy. If it refuses (changes not committed) keep it and say so; if git let go of it but its folder stays because the implementer session still holds it, say so (D-35). The branch always stays. `state.delivery.worktree` records `removed`, `removed; its empty folder stays while the implementer session holds it`, `kept: <why>` (D-34), or `none: checkout`. A partial delivery leaves the worktree as it is.
 
 ## 3. Report and state, in one message
 
-- Write `runDir/report.md` from the template (below), final except what publishing adds.
-- Write `state.json`: `delivery` with `mode`, `why`, `worktree`. For `branch` and `none`: `status: delivered`, then one line with the outcome and the report's path, a push notification, and the turn ends.
+- Write `runDir/report.md` from the template (below), final except what publishing adds. A partial delivery writes no report: a row in `decisions.md` ("partial delivery: <repos>") and `state.delivery.partial` (a list of `{ "at", "repos", "outcome" }`) hold it until the final report lists it.
+- Write `state.json`: `delivery` with `mode`, `why`, `order`, `worktree`. For `branch` and `none`, after the snapshot (step 4 does it for every mode): `status: delivered`, then one line with the outcome and the report's path, a push notification, and the turn ends.
 - With `humanBeforePublish` and delivery `pr` or `merge`: `status: waiting`, `waiting: { "kind": "publish" }`, and escalate as `/baton:event` says, with the buttons «Publish» / «Leave the branch». The answer comes back to step 4.
 - Otherwise go on to step 4 in the next message.
 
-## 4. Publish
+## 4. Publish, repo by repo in the order
 
-- `pr`: `git push -u origin <branch>`. An open pull request from step 1: put its URL in the report, then `gh pr comment <number> --body-file <runDir>/report.md` (the push already updated it). None: `gh pr create --base <base> --head <branch> --title "<plan title>" --body-file <runDir>/report.md`, then put the new URL in the report and `gh pr edit <number> --body-file <runDir>/report.md`, so the body is the final report (D-38). Then bind it with `mcp__ccd_pr__bind_pr` when you have it ("already bound" is fine).
-- `merge`: only when step 1's `git status --porcelain` printed nothing and the current branch is the base; otherwise deliver as `branch` and say why. `git merge --no-ff --no-edit <branch>`. If it fails and `git rev-parse -q --verify MERGE_HEAD` passes, `git merge --abort`, and say "the branch does not merge cleanly: your checkout is as it was, the branch stays".
-- After a pull request is created or updated, check it rather than trust it (D4), in one message: `gh pr view <number> --json state,headRefOid,mergeable,body` and `git rev-parse <branch>`. The `headRefOid` must be the branch's HEAD, and every commit the body cites must be on the branch, the newest of them its HEAD (`git merge-base --is-ancestor <sha> <branch>`, one call per commit, in the next message). A mismatch: rewrite the body once from the report (`gh pr edit <number> --body-file <runDir>/report.md`) and check again; still wrong, say so in the line and in a `decisions.md` row.
-- A step that fails stops the delivery: say which and its message, `status: done-not-delivered` (the branch has the work; `/baton:status continue` retries from that step).
+For each repo in the order, its own steps, and the root's snapshot just before the root's:
+
+- `branch` and `none`: nothing is pushed; only the snapshot is made, when it applies. The report lists each repo's branch and commits, in the order.
+- `pr`: `git -C <path> push -u origin <branch>`. An open pull request from step 1: put its URL in the report, then `gh pr comment <number> --body-file <runDir>/report.md` (the push already updated it). None: `gh pr create --base <base> --head <branch> --title "<plan title>" --body-file <runDir>/report.md`, run in that repo (`gh` takes the repo from the folder: one command per call, from `<path>`, with `gh -R <owner/name>` when it cannot), then put the new URL in the report and `gh pr edit <number> --body-file <runDir>/report.md`, so the body is the final report (D-38). Then bind it with `mcp__ccd_pr__bind_pr` when you have it ("already bound" is fine). With several repos, once every pull request exists: each body ends with "Sibling pull requests: <the others' URLs>" (`gh pr edit` again with the report holding the line), and a pull request that existed before gets that line as a comment.
+- `merge`: in each repo, only when step 1's `git -C <path> status --porcelain` printed nothing; `git -C <path> switch <base>` (a checkout run is on the plan's branch), then `git -C <path> merge --no-ff --no-edit <branch>`. If it fails and `git -C <path> rev-parse -q --verify MERGE_HEAD` passes, `git -C <path> merge --abort`, and say "the branch does not merge cleanly in <repo>: it is as it was, the branch stays"; the repos after it in the order are not merged.
+- After a pull request is created or updated, check it rather than trust it (D4), in one message: `gh pr view <number> --json state,headRefOid,mergeable,body` and `git -C <path> rev-parse <branch>`. The `headRefOid` must be the branch's HEAD, and every commit the body cites must be on the branch, the newest of them its HEAD (`git -C <path> merge-base --is-ancestor <sha> <branch>`, one call per commit, in the next message). A mismatch: rewrite the body once from the report (`gh pr edit <number> --body-file <runDir>/report.md`) and check again; still wrong, say so in the line and in a `decisions.md` row.
+- A step that fails stops the delivery there: say which repo and step and its message, `status: done-not-delivered` (the branches have the work; `/baton:status continue` retries from that repo and step, and `state.delivery.repos` says which are done).
 
 ## 5. Close, in one message
 
-Edit the report's delivery line (the URL, "merged locally into <base>", or why not) and, after a publish question, add the person's answer to "What needed you"; Write `state.json` with `status: delivered` and `delivery` complete (`url`, `comment` when one was posted), a push notification, and one line in the chat with the outcome and the report's path.
+Edit the report's delivery lines (each repo's URL, "merged locally into <base>", or why not) and, after a publish question, add the person's answer to "What needed you"; Write `state.json` with `status: delivered` and `delivery` complete (`order`, `repos` with each repo's outcome, `url` and `comment` for a single repo), a push notification, and one line in the chat with the outcome, the order and the report's path. A partial delivery closes with its `decisions.md` row and goes back to the pause's question.
 
 ## The report
 
 Fill `PLUGIN/templates/report.md`:
 
-- the parts with their results (status, commits, gates, summary, from the result files); parts not done are said as pending;
+- the repos, each with its branch from its base at its `baseSha`, and the delivery order, with any partial delivery made at a pause;
+- the parts with their results (status, repos, commits, gates, summary, from the result files); parts not done are said as pending;
 - the lines of `settled.md`; the decisions table from `decisions.md`;
-- commits from `git log --oneline <baseSha>..<branch>`, those before the first part's `startSha` marked "(earlier iteration)";
+- commits per repo from `git -C <path> log --oneline <baseSha>..<branch>`, the snapshot commit marked as such, those before the first part's `startSha` marked "(earlier iteration)";
 - the reviews table from the Grep: one row per review file, its verdict and the number of `### F-` headings;
 - repeated findings: a `category` that appears in two or more plans of `findings.jsonl` gets one proposed rule for the repo's CLAUDE.md, in the repo's language; otherwise "None yet.";
 - cost: the results' `reviewer_usage`, and "see the session's usage" for the implementer;
