@@ -22,8 +22,9 @@ The template is `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`: read it now. What `/b
    - **Already decided**: one line per settled fact, concrete enough to answer a question with ("Dates are stored in UTC", "Keep the old /login route for one release"). This is what baton's supervisor answers from; anything left out comes back to the person.
    - **Parts**: one to seven, each a piece of work a reviewer can judge on its own diff, in order, `## Part A — <title>`, then what to do in plain words (files, behaviour, what is out of scope) and an **Acceptance** list of two to five checks a reviewer can run or read: a command and its expected result, a test that must exist and pass, a file that must contain something, a behaviour with its input and output. No "works well", "clean code" or criteria nobody can check.
    - **Pauses**: a `## Pause before part <X>` heading only where the conversation said a person decides or looks before going on, or where an open question blocks a part (write the question in the pause).
-5. **Open questions.** At most one question to the person, with AskUserQuestion, and only when an answer changes the parts. With no one to answer (a non-interactive run), write the question as a pause before the part it blocks.
-6. **Close** with one line: the plan's path, its parts and pauses, that it is not committed, and the command to run it: `/baton:run <path>`.
+5. **Earlier decisions.** Grep the repo's earlier runs for the person's answers (`.claude/runs/*/settled.md`, lines "from the person" and the section `## Delegated by the person`). A line of the plan that contradicts one, such as delegating what they kept for themselves, or deciding what they decided otherwise, is a clash: show it to the person with the earlier line quoted before writing the plan, and write what they choose.
+6. **Open questions.** At most one question to the person, with AskUserQuestion, and only when an answer changes the parts. With no one to answer (a non-interactive run), write the question as a pause before the part it blocks.
+7. **Close** with one line: the plan's path, its parts and pauses, that it is not committed, and the command to run it: `/baton:run <path>`.
 
 ## Never
 

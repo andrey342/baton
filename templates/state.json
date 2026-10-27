@@ -44,7 +44,7 @@
       "reviewer": { "model": "opus", "effort": "high", "skills": [], "reason": "One step above the implementer on a risky part" },
       "critic": { "model": "opus", "effort": "high", "skills": [], "reason": "Independent acceptance of the contract" },
       "weight": "L", "uses": ["docker-stack"],
-      "pauses": [{ "before": "P2.8", "text": "data reset", "delegated": false }],
+      "pauses": [{ "before": "P2.8", "text": "data reset", "delegated": true }],
       "session": { "id": "local_…", "name": "baton-example-p2", "archived": false },
       "startSha": { "backend": "def5678", "root": "bcd2345" }, "endSha": null,
       "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false, "verified": null
@@ -59,8 +59,13 @@
     }
   ],
   "current": "P2",
+  "humanBeforePublish": "ask-once",
   "authority": {
-    "delegated": [{ "row": "plan-pause", "scope": "the reset of P2.8", "at": "2026-11-01T10:30:00Z", "words": "autorizo el reset de P2.8" }],
+    "allow": [],
+    "alwaysAsk": ["Recreating containers or resetting data outside the steps the plan marks"],
+    "neverDelegate": ["ui-design", "install-software"],
+    "delegated": [{ "row": "destructive", "scope": "the reset of P2.8", "at": "2026-11-01T10:30:00Z", "words": "autorizo el reset de P2.8" }],
+    "publishList": [],
     "publishApproved": null
   },
   "locks": { "docker-stack": "local_…" },

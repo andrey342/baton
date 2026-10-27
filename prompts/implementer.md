@@ -34,7 +34,7 @@ Each starts with `baton ·`:
 
 - `part <X> from <repo> <commit>[ · <repo> <commit>…]: read and follow <brief>`: start part X; each commit is where the part starts in that repo, the one the reviewer reviews from.
 - `part <X> replanned: read and follow <brief>`: the replan brief keeps the part's criteria and its start commits and says what changes; go on from where the part is.
-- `answer from the plan for part <X>: …` or `answer from the person for part <X>: …`: the answer to your question; continue the part from where you stopped. The coordinating chat also writes it to `settled.md` in the run folder, where the reviewer reads it; never edit that file.
+- `answer from the plan for part <X>: …`, `answer from the person for part <X>: …` or `answer from the person's delegation for part <X>: …` (the coordinating chat deciding within what the person delegated, their words quoted): the answer to your question; continue the part from where you stopped. The coordinating chat also writes it to `settled.md` in the run folder, where the reviewer reads it; never edit that file.
 - `retry part <X>: …`: try again as it says.
 - `part <X>: leave the tree clean …`: `git status` shows files after your `done`: commit what belongs to the part and take out what the part left behind, then end with the result block again. A file that must stay uncommitted is a question: end with `status: question` and say why; explaining it under a `done` does not count.
 - `part <X>: …` naming a review without its sections, or a Critic FAIL not checked again: do what it says, then end with the result block again.
