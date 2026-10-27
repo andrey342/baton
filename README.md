@@ -144,7 +144,7 @@ Every decision is a row in `decisions.md` with one sentence of reason, and one l
 
 ## Cost, and which model where
 
-- **0.3 round** (four parts, CLI, Sonnet coordinator): 2.88 USD for the coordinator and 0.63 USD for the four parts' sessions, reviewers included. The coordinator was 82 %, as in v0.1 (73 %). Its cost grows with its own conversation, since each event reads it again: 0.09 to 0.32 USD per turn in this round, and 0.75 for the delivery of three pull requests.
+- **0.3 round** (four parts, CLI, Sonnet coordinator): 3.51 USD. Coordinator 2.88 USD (82 %), implementers 0.48 (14 %), reviewers 0.16 (4.5 %, about 0.04 per round). In v0.1 the split was 73 / 24 / 3 %, with the coordinator in the app. B's and C's reviewers are estimated from their tokens, since they share the implementer's model. Its cost grows with its own conversation, since each event reads it again: 0.09 to 0.32 USD per turn in this round, and 0.75 for the delivery of three pull requests.
 - **0.2:** a part's event went from 8.3 calls and 0.39 USD to 3.1 calls and 0.20 USD with an Opus chat.
 
 How to choose:
@@ -167,14 +167,18 @@ One plan of four parts in a three-repo lab (root, backend and frontend as repos 
 - **Starts:** four sessions started; no start was refused, and no card was needed.
 - **Delivery,** on «continúa»: backend PR #1, frontend PR #2 and root PR #3, in that order, each checked against its branch.
 
+**Still open**, because the round could not show them with a stubbed app:
+- whether a session start counts in the app's 10-message quota (baton counts it);
+- whether a card keeps the model and effort it was proposed with (baton checks them at its first event);
+- whether a compaction or the tenth wake-up breaks the chain of automated turns.
+
 **Not seen live** (in the app):
-- a start refused and its card clicked;
+- a start inside a chain of events, a refused start and its card clicked, and an effort raised by an event;
 - the message and wake limits reached;
-- a session stopped mid-turn with `stop_session`, and a session archived;
-- a real `gh` and a real `entrega` by a session's `deliver` hook;
-- a delegation taken back;
-- a profile's `allow` and `alwaysAsk`;
-- `--adapt`'s questions answered by a person, and a launch from a map.
+- a session stopped mid-turn with `stop_session`, a session gone at «continúa», and a session archived;
+- a real `gh`, and a real `entrega` by a session's `deliver` hook;
+- a delegation taken back, a profile's `allow` and `alwaysAsk`, and a `merge` under a delegated `publish`;
+- `--adapt`'s questions answered by a person, a launch from a map, and its hash check at the launch.
 
 The CLI probes of each part (`docs/DECISIONS.md`, D-58 to D-69) cover them with stubs.
 

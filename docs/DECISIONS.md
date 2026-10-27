@@ -399,7 +399,12 @@ What only the app can show stays "not seen live".
 - **Wakes per part:** A 1, B 2, C 2, D 2.
 - **Starts:** 4, none refused and no card.
 - **Messages to sessions:** 3.
-- **Cost by role** at the official list prices, the table D-45 used: 2.88 USD for the coordinator over 13 turns (82 %) and 0.63 USD for the four sessions, reviewers included (18 %); 3.51 USD in all.
+- **Cost by role** at the official list prices (`costBasis: list`), the table D-45 used, from each conversation's `modelUsage` (`probes-9.md`). The total is 3.51 USD:
+  - **Coordinator:** 2.88 USD over 13 turns, 82 %.
+  - **Implementers:** 0.48 USD, 14 %.
+  - **Reviewers:** 0.16 USD, 4.5 %, about 0.03 to 0.05 USD per round.
+  
+  For A and D (Haiku implementers, Sonnet reviewers), `modelUsage` splits the two exactly. For B and C, implementer and reviewer share the model, so each reviewer is estimated at 0.04 USD from its 15,100 to 15,700 tokens, at the rate of A's and D's reviewers. D-45's split was 73 / 24 / 3 %. The coordinator here is a CLI conversation without the app's system prompt, so the shares compare, but not to the cent.
 - **What happened along the way:**
   - A change and a yes in one message only revised the table, so the yes took one more press.
   - The pausa reached D after its `done`. The coordinator closed D during the pause, kept `paused.next: "deliver"`, recorded D's late `paused`, and delivered on «continúa».
@@ -414,10 +419,15 @@ What only the app can show stays "not seen live".
 
 **The release.** `version` is `0.3.0` in `.claude-plugin/plugin.json` and `marketplace.json`, and the README says 0.3. The coordinator merges into `main` and pushes; this session does not.
 
+**Still open**, since the stubbed app could not show them, and their earlier rules stand:
+- **D-59:** whether `start_session` counts in the 10-message quota. baton keeps counting each start as a message. "Starts: 4, none refused" above is not an answer to it.
+- **D-60:** whether a card keeps the `model` and `effort` it was proposed with. The card's prompt keeps saying them, and the first event checks them with `get_session`.
+- **D-62:** whether a compaction, or the tenth wake-up, breaks the chain of automated turns so that the next start is refused.
+
 Not seen live, in the app:
-- a refused start and its card;
+- a start inside a chain of events, a refused start and its card, and an effort raised by an event (D-64);
 - the 8 and 9 limits;
-- `stop_session` on a running turn, and archiving;
+- `stop_session` on a running turn, a session gone at «continúa», and archiving and its refusals (D-69);
 - a real `gh`, and a session's `entrega` through a `deliver` hook;
-- a delegation taken back, and a profile's `allow` and `alwaysAsk`;
-- `--adapt`'s questions answered by a person, and a launch from a map.
+- a delegation taken back, a profile's `allow` and `alwaysAsk`, and a `merge` under a delegated `publish` (D-67);
+- `--adapt`'s questions answered by a person, a launch from a map, and the hash check at that launch (D-68).
