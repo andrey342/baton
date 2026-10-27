@@ -43,7 +43,7 @@ The run is the one whose `state.json` (`status` `running`, `waiting`, `paused` o
 - when a session starts next (a `done` in a `per-part` run with a part left): `git -C <path> rev-parse HEAD` for each repo of the next part that the current one does not touch, and `get_session` for this chat (`self`): its `model` and `effort`, the ceiling of the start, kept in `coordinator`;
 - `date -u +%Y-%m-%dT%H:%M:%SZ`;
 - when the event quotes `paused`: Read `workerRunDir/pause-<current>.md` (it may not exist);
-- when the state has parts whose `session.archived` is false and `archiveSessions` is true: `get_session` for each, to retry archiving (below);
+- when `archiveSessions` is true: `get_session` for each part that is due for archiving and not archived yet (below), with a `session.id` and `archiveTries` below 3;
 - when the event quotes a status other than `done`, the next part has `pauseBefore`, or the person's words delegate or take back authority, and `supervisor.md` is not yet in this conversation: Read `PLUGIN/prompts/supervisor.md`;
 - when it quotes `done` in a version 2 run and `models.md` is not yet in this conversation: Read `PLUGIN/prompts/models.md`;
 - when `current` is the last part, or the next part's pause has a `pauseDeliver`: Read `PLUGIN/skills/event/deliver.md` (and `PLUGIN/templates/report.md` for the last part);
@@ -57,7 +57,7 @@ By the result's `status`:
 
 - **any result while the run is `paused`** (D10): the part's session answering the `baton · pausa` message, or a turn that ended before it arrived.
   - **paused**: `pause-<X>.md` exists and says what is done, half done and next. Then a `decisions.md` row "part <X> paused: pause-<X>.md", and the run stays `paused`. Without the file: "baton · part <X>: write `pause-<X>.md` as the pausa message says, then end with status: paused."
-  - **done**: checked as below. When every check passes, the part becomes `done`, but nothing starts: the next part waits for «continúa», and `paused.next` holds its id. A check that fails is not sent now: it goes into `paused.held`, sent on «continúa».
+  - **done**: checked as below. When every check passes, the part becomes `done` and leaves `paused.parts`, but nothing starts: the next part waits for «continúa», and `paused.next` holds its id. A check that fails is not sent now: it goes into `paused.held`, sent on «continúa».
   - **question**, **blocked** or **failed**: recorded, and nothing is sent. The part stays `paused`, and `paused.held` keeps the result, handled on «continúa» as if it had just arrived.
 - **any result while the run is `closing`** is not a part's, and goes by `closing.phase`:
   - **`deliver`** (a `baton · entrega` was sent): it is the delivery's result, handled by "With a `deliver` hook" in `deliver.md`. A partial one then ends as that file's step 5 says: the next part starts (a delegated pause, or the person's «Publish … and continue» already given), or the pause's question waits;
@@ -91,7 +91,13 @@ By the result's `status`:
 **Logging findings.** Whenever the Grep shows `NO` rounds of the part above its `logged` round (0 at first), each of their `### F-nn · P · category · file · title` headings becomes one line of `<checkout>/.claude/runs/findings.jsonl`, `{"plan":"<run>","part":"<X>","round":<n>,"priority":"P2","category":"tests","file":"src/a.js:12","title":"…","at":"<now>"}`, and `logged` becomes the last round seen, so a round is logged once whether the part ends `done` or `blocked`.
 
 **Archiving sessions** (D10) happens only with the person's yes. They give it in the proposal's options («archiva las sesiones verificadas»), in any later word, or at the close. That yes sets `archiveSessions: true`, with a `decisions.md` row.
-- **When a part is verified `done`**, its session is archived with `mcp__ccd_session_mgmt__archive_session` in the writes, and `session.archived` becomes true. Never one at work, never the current part's before its `done`, and never deleted.
+- **Only in a `per-part` run.** A v1 or `per-plan` run has one session for the whole plan, and nothing is archived before the close.
+- **A part is due for archiving** once nothing more will be sent to its session:
+  - a part followed by another one, when the next part's session has started;
+  - a part whose session makes a partial delivery (a `deliver` hook `by: session`), once that delivery's result is in;
+  - the last part, at the close, after the hooks its session runs (`onClose`, `afterMerge`).
+  
+  Then its session is archived with `mcp__ccd_session_mgmt__archive_session` in the writes, and `session.archived` becomes true. Never a session at work, and never deleted.
 - **When the app refuses** (as in Phase 3, «live work» for hours): `archived` stays false and `session.archiveTries` adds 1. The archive is tried again at the coordinator's next turn, in the reads' `get_session` and the writes.
 - **After the third refusal**, one line to the person with the session's link, `[baton · <title> · <part>](#<id>)`, and no more tries.
 
@@ -140,7 +146,7 @@ If the app refuses the message (its quota, or the session cannot be reached), th
 
 ## The person's answer
 
-Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` and `wakesSinceUser` to 0 (and `warnedAt8` to null) before anything else, whatever the run's status: the app's count starts again with it. When decisions were taken under delegation since their last word, the reply starts with one line listing them. Words that hand over or take back authority ("autorizo…", "delego…", "decide tú…", "ya no…"), at any status: follow "Delegation during the run" in `supervisor.md` (its `settled.md` section and `state.authority.delegated`; while the run is `proposed`, the state alone, as step 3 of `/baton:run` says), say what was delegated and what was refused, and then act on whatever else they wrote. A run `waiting` on a stop the new delegation covers goes on as delegated. Words that pause the run («para», «pausa») or continue a paused one («continúa», «sigue») follow `pause` and `continue` in `/baton:status`, at any status. Words that end it («stop», «cancela el plan») follow its `stop`. A yes to archiving sessions sets `archiveSessions` ("Archiving sessions" above). When the run is `proposed`, their words answer the model table: follow step 3 of `/baton:run` (`PLUGIN/skills/run/SKILL.md`). When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
+Any message the person writes in this chat, typed or a button, sets `messagesSinceUser` and `wakesSinceUser` to 0 (and `warnedAt8` to null) before anything else, whatever the run's status: the app's count starts again with it. When decisions were taken under delegation since their last word, the reply starts with one line listing them. Words that hand over or take back authority ("autorizo…", "delego…", "decide tú…", "ya no…"), at any status: follow "Delegation during the run" in `supervisor.md` (its `settled.md` section and `state.authority.delegated`; while the run is `proposed`, the state alone, as step 3 of `/baton:run` says), say what was delegated and what was refused, and then act on whatever else they wrote. A run `waiting` on a stop the new delegation covers goes on as delegated. Words that pause the run («para», «pausa») follow `pause` in `/baton:status` while it is `running` or `waiting`. While it is `proposed`, «para» is step 3's stop in `/baton:run`, since nothing was created. While it is `closing`, the delivery or close under way is not paused: say so, and that «stop» ends the run once it is done. «continúa» or «sigue» on a `paused` run follows `continue`, and words that end the run («stop», «cancela el plan») follow `stop`. A yes to archiving sessions sets `archiveSessions` ("Archiving sessions" above). When the run is `proposed`, their words answer the model table: follow step 3 of `/baton:run` (`PLUGIN/skills/run/SKILL.md`). When the run is `waiting`, their words are the answer: the same three steps (Read `state.json` and the time; Write `state.json` with a `presses` entry, `status: running`, `waiting: null`; the one line), and:
 
 - a question: a line in `settled.md`, then forward their words **verbatim**: "baton · answer from the person for part <X>: <their words>";
 - a pause inside a part (`waiting.inside`): «Go on past <id>» or their words go to the part's session verbatim, "baton · answer from the person for part <X>: <their words>"; «Stop here» stops the run as `/baton:status stop` says;
@@ -168,13 +174,14 @@ When the person says "sigue" or "continue", runs `/baton:status continue`, or th
 On «continúa», "sigue" or `/baton:status continue`, for a run `paused` (D10). The person's word resets the counts, as in "The person's answer".
 
 1. **Read, in one message:** `state.json`; for each part in `paused.parts`, `pause-<X>.md` and `get_session` of its session; `get_session` for this chat (step 0 of "Resuming"); and the time.
-2. **Decide, for each part in `paused.parts`:**
+2. **Decide.** A part that `done` closed while paused is no longer in `paused.parts` and gets nothing. For each part still in it, the first case that applies:
+   - **A card still waiting** (`paused.waiting.kind: "start"` for it, or `session.id` null with a `taskId`): follow "a card still waiting" in "The person's answer": `list_sessions` by its name, then `dismiss_task`, and start a session only when the app confirms it withdrew the card. Never "gone" below: the person may have clicked the card during the pause.
    - **Its session is alive:** "baton · continúa <X> desde `pause-<X>.md`". With no `pause-<X>.md` (the session never answered the pausa), "baton · continue part <X> from your brief `<workerRunDir>/brief.md` (or its replan brief); check `git log` for what is done."
    - **Its session is gone or archived:** a new session for the same part, as "The next part's session" says, with the same brief and the part's same `startSha`. A coordinator `beforePart` hook runs first. The prompt adds "Your part was paused: read `pause-<X>.md` in the run folder first, then continúa <X> desde `pause-<X>.md`." It may be started, since this turn is the person's.
    - **A part that `done` closed while paused** (`paused.next`): the next part starts as "The next part's session" says.
    - **Anything in `paused.held`:** handled as if it had just arrived (steps 2 and 3 of this skill).
 3. **Write, in one message:**
-   - `state.json`: `status` back to `paused.from` (`running`, or `waiting` with `paused.waiting` asked again), the parts back to `working`, `paused: null`;
+   - `state.json`: `status` back to `paused.from` (`running`, or `waiting` with `paused.waiting` asked again, unless the card's case above settled it), only the parts still `paused` back to `working`, `paused: null`;
    - the messages or starts, each counted in `messagesSinceUser`;
    - a `decisions.md` row "continued by the person: <parts>";
    - the one line.

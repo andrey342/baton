@@ -25,11 +25,11 @@ For each open run, and the last finished one, a few lines:
 - the implementer session as a link, `[baton · <title>](#local_<id>)`, and whether it still exists (`mcp__ccd_session_mgmt__get_session`, when you have it): v1, `worker`; v2, the `session` of each part that has one, with the part's implementer model and effort;
 - `messagesSinceUser`, decisions so far, and the delivery (mode, pull request URL, worktree removed or kept) when done.
 
-A report changes nothing: do not send messages, start sessions or deliver from it. End with what the person can say next ("sigue" to pick it up, "para" to stop it).
+A report changes nothing: do not send messages, start sessions or deliver from it. End with what the person can say next ("sigue" to pick it up, "para" to pause it, "stop" to end it).
 
 ## pause
 
-For an open run that is `running` or `waiting` (D10). The person's word resets the quota (`messagesSinceUser` and `wakesSinceUser` to 0), so there is room for these messages.
+For an open run that is `running` or `waiting` (D10). A `proposed` run has nothing at work: «para» there is `/baton:run`'s stop. A `closing` run finishes its delivery or close first: say so. The person's word resets the quota (`messagesSinceUser` and `wakesSinceUser` to 0), so there is room for these messages.
 
 1. **Read, in one message:** `state.json`, `get_session` for each part whose status is `working` (its `session.id`; v1: `worker.sessionId`), and the time.
 2. **Act, in one message:**
@@ -38,7 +38,7 @@ For an open run that is `running` or `waiting` (D10). The person's word resets t
    - Write `state.json`: `status: paused`, those parts `paused`, `paused: { "at", "from": <the status before>, "waiting": <the waiting before>, "parts": [<ids>] }` and `waiting: null`;
    - a `decisions.md` row "paused by the person: <parts>".
    
-   A part with no session at work (a card not clicked, a session gone) gets no message: its line says so, and `continue` starts it from its brief.
+   A part with no session at work gets no message, and its line says so. A card not clicked stays as it is, and `continue` follows "a card still waiting" in `/baton:event` for it, never a new start on a guess. A session that is gone is started again on `continue`, from its brief.
 3. **The one line:** what was paused, and that "sigue" or `/baton:status continue` picks it up. Each session's `paused` result then reaches `/baton:event`, which checks its `pause-<X>.md` and leaves the run paused.
 
 The person's «para» while a turn of theirs has nothing at work (a run `waiting` on a question, say) still pauses: the waiting question is kept in `paused.waiting` and asked again on `continue`.
@@ -53,7 +53,7 @@ For the closable run (one without a run id; with several, list them and ask whic
 - a `delivered` run, once the person says they merged: the repo's `onClose` and `afterMerge`, then each repo of a checkout run back to its base, and the `excluded` lines removed;
 - a `stopped` run: nothing was merged, so no `onClose` or `afterMerge`, only the repos back to their bases and the exclusions removed.
 
-This turn is the person's, so a session the close needs may be started. A run that is not closable: say what it waits for instead. When the person's words also ask to archive the sessions («y archiva las sesiones»), that is the yes for "Archiving sessions" in `/baton:event`: each part's session not yet archived is archived, with its refusals handled there.
+This turn is the person's, so a session the close needs may be started. A run that is not closable: say what it waits for instead. When the person's words also ask to archive the sessions («y archiva las sesiones»), that is the yes for "Archiving sessions" in `/baton:event`. With that yes, or `archiveSessions` already true, each part's session not yet archived is archived once the close's steps are done (the last part's session runs its hooks first), with refusals handled as that section says.
 
 ## stop
 
