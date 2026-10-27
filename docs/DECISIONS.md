@@ -287,19 +287,25 @@ The launch copies `authority` and `humanBeforePublish` into the state.
 - The rest go into `settled.md`, under `## Delegated by the person` with the words verbatim, and into `state.authority.delegated`.
 - Each decision under a delegation is a row "decided under delegation (<row>: <scope>)", listed at the person's next word.
 - A delegation lasts the run, and a scope that does not clearly cover a stop is not delegated.
+- Words given with the proposal's yes are kept in the proposed state, and the launch writes them into the new `settled.md`. That file now opens with `## Delegated by the person`, then `## Answers`, where the answers are appended.
 
-**The plan's pauses.** Between parts and inside one (a result with `pause:`), they are decided this way when delegated, and otherwise escalated with buttons. The implementer gets a new message, "answer from the person's delegation".
+**The plan's pauses.** Between parts and inside one (a result with `pause:`), they are decided this way when delegated, and otherwise escalated with buttons. The implementer gets a new message, "answer from the person's delegation". Only an entry of `authority.delegated` makes a pause delegated: nothing the plan or a part writes does.
+
+**What delegation does to publishing.** A delegated `publish`, or `publish` in `authority.allow`, counts as the person's yes for what its scope covers. That holds whatever `humanBeforePublish` says, at a partial or a final delivery and before an `entrega`, with a row "decided under delegation (publish: <scope>)". A merge is covered only when the scope names it. A delegated pause whose publishing is not delegated asks the publishing alone, still as the pause.
 
 **`humanBeforePublish: "ask-once"`.** One question at the run's first publication, partial or final, lists everything the run will publish: each push in order, each pull request with its title and body, the sibling lines and comments, and local-CI comments. The list waits in `publishList`. The yes moves it into `publishApproved`, and later publications in that list go without asking. Merge is never in it.
 
-**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs (`settled.md`) before the yes.
+**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs before the yes, and `/baton:plan` does so before it writes. The answers are read from `settled.md`, which holds every one of them verbatim (D-37), so `decisions.md` is not read for this.
 
-**Probes** (`probes-6.md`, 1.81 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
+**Probes** (`probes-6.md`, 3.40 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
 - «autorizo el reset y push/PR; el diseño también» delegated `destructive` (the reset) and `publish` (push/PR), and refused the design in one line ("`ui-design` está en `neverDelegate`");
 - a pause inside a part, the reset, was decided under that delegation with its row and no question;
 - the design pause was escalated with buttons;
 - with `ask-once`, the first publication (a partial delivery of backend at a pause) asked once, listing the pushes and pull requests of all three repos;
 - after the yes, backend was pushed and its pull request opened;
-- the final delivery published frontend and root, with the snapshot and the sibling pull requests, without another question.
+- the final delivery published frontend and root, with the snapshot and the sibling pull requests, without another question;
+- after review r1: with the pause and `publish` delegated under `ask-once`, A's `done` published backend with no question and started B, with both "decided under delegation" rows;
+- a delegation given with the proposal's yes reached the launched state and the new `settled.md`;
+- a delegated pause whose publishing was not delegated asked the publishing alone, as the pause, with the whole-list button and nothing pushed.
 
-Seen and fixed: the list waiting for the yes has its own field, and a partial pull request's body is a short note, with the report added later as a comment. Not seen live: a real `gh`, and a delegation taken back.
+Seen and fixed: the list waiting for the yes has its own field; a partial pull request's body is a short note, with the report added later as a comment; and the delegated pause's publishing question has its kind and buttons spelled out. Not seen live: a real `gh`, a delegation taken back, a clash with an earlier run's answers, a profile's `allow` and `alwaysAsk`, and a `merge` under a delegated `publish`.

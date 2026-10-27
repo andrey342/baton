@@ -44,7 +44,7 @@
       "reviewer": { "model": "opus", "effort": "high", "skills": [], "reason": "One step above the implementer on a risky part" },
       "critic": { "model": "opus", "effort": "high", "skills": [], "reason": "Independent acceptance of the contract" },
       "weight": "L", "uses": ["docker-stack"],
-      "pauses": [{ "before": "P2.8", "text": "data reset", "delegated": true }],
+      "pauses": [{ "before": "P2.8", "text": "data reset" }],
       "session": { "id": "local_…", "name": "baton-example-p2", "archived": false },
       "startSha": { "backend": "def5678", "root": "bcd2345" }, "endSha": null,
       "rounds": 0, "logged": 0, "decisions": 0, "retries": 0, "replanned": false, "verified": null
