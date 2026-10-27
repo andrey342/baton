@@ -228,3 +228,32 @@ Probes (0.62 USD):
 - a one-repo worktree run, once its worktree was removed, merged into the checkout's `main`.
 
 Review r2 found that a partial `merge` in a checkout run left the repo on its base, so later parts would commit straight onto it. Now a repo merged by a partial delivery goes straight back to the plan's branch, and the next part starts from its head. A worktree run's partial merge never switches anything. Probe (0.27 USD): at a pause naming backend, backend merged into `develop` and was back on `baton/lab3`, and the run waited at the pause with the outcome in its question.
+
+**D-66 · The repo's own process: hooks, who makes the branches, untracked files and the close (part 5).** `skills/run/hooks.md`, read only by runs whose profile needs it, holds the rules.
+
+**The hooks.** The profile can hold seven: `onStart`, `beforePart`, `afterPart`, `snapshot`, `deliver`, `onClose` and `afterMerge`. Each is a `run` command or a `text` step, `by` the coordinator (one command in the foreground, about two minutes at most, its exact command, exit and last lines in `decisions.md`) or by a part's session (written filled into the brief's new "The repo's own steps" section). `implementer.md` makes a part's start and end steps its first and last before the review. The delivery steps run only on `entrega`. `afterPart` cannot be the coordinator's, since the review is inside the session.
+
+**The markers** are `{{run}}`, `{{planSlug}}`, `{{yyyymmdd}}`, `{{repoRunId}}`, `{{branch}}`, `{{repo}}`, `{{repos}}`, `{{report}}` and `{{title}}`. `{{repoRunId}}` follows the profile's new `repoRunId` format (`{{yyyymmdd}}-{{run}}` by default) and is kept in the state. They are filled before a hook is run, sent or written. An unknown marker stops the launch, and the brief is grepped for `{{` before it is written. The state keeps the hooks as the profile writes them, so each event can read them.
+
+**Who makes the branches** (`branch.createdBy`):
+- `baton`, as before.
+- `hook`: `onStart` makes them, and each repo is then checked with `rev-parse` and `branch --show-current`, its `branchSha` kept.
+- `part:<id>`: that part makes them, and they are checked at its `done`.
+
+The profile's `branch.name` takes the markers too.
+
+**Untracked files** in a checkout run follow `untrackedPolicy`:
+- `stop`: the launch stops and names them;
+- `ignore`;
+- `exclude-local`: an anchored line per file in that repo's own `info/exclude`, listed in `state.excluded`, and removed with Edit at the close.
+
+**With a `deliver` hook by session**, the coordinator writes the report, sends the last part's session `baton · entrega: <repos in order>`, waits with `status: closing`, then checks the pull requests the session reports. **The close** comes after the person says it is merged (`/baton:status close`), or right after a `merge` baton made: `onClose`, `afterMerge` (to a session as `entrega` when it pushes), the repos back to their bases, the exclusions removed, `closedAt`.
+
+**Probes** (`probes-5.md`, 1.33 USD), in the lab with a profile whose `onStart` and `onClose` are lab scripts and whose plan file is untracked:
+- with `stop`, the launch stopped and named `docs/plans/lab4.md`, with no branch made and no hook run;
+- with `exclude-local`, the line `/docs/plans/lab4.md` went into the root's `info/exclude` and `state.excluded`;
+- `onStart` ran as `sh ../scripts/new-run.sh 20261027-lab4 baton/lab4`, made `baton/lab4` in the three repos, and left each repo's `branch` and `branchSha` checked with `rev-parse`;
+- `grep -c "{{"` gave 0 on the brief and `decisions.md`;
+- the close ran `onClose`, removed the exclude line and emptied `state.excluded`.
+
+Seen and fixed: the close left the root on the branch because its plain `status` shows the submodule pointers. It now checks the root with `--ignore-submodules=all`. Not probed: `deliver`, `snapshot`, `afterMerge` and `beforePart` run by a session, which need a live session, and `part:<id>`.
