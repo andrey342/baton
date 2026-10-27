@@ -264,3 +264,42 @@ Review r1 of part 5 found that the close was not wired into the run's states. No
 - **A checkout run** that is `delivered` or `stopped` without `closedAt`, while it still has `excluded` lines or a repo on its branch, blocks a new run in that checkout until it is closed.
 
 Probes (0.46 USD): a dry run stopped on such a `lab5`, naming its exclude line and its branch. `/baton:status lab5 close` then took root and backend back to their bases, removed the exclude line, emptied `state.excluded` and set `closedAt`, and ran no `onClose`.
+
+**D-67 · Authority the repo can tune and the person can delegate (part 6).**
+
+**The table.** Each row of `prompts/supervisor.md` now has an id. There are six new rows, all from MSG's Phase 3:
+- `ui-design`: choosing between design proposals;
+- `install-software`;
+- `credential-stores`: a session listed Windows Credential Manager;
+- `computer-use`: taking over the desktop;
+- `machine-environment`: Docker, host memory;
+- `red-gate-environment`: a gate accepted as red for the environment, only with equivalent evidence (D4).
+
+**The profile's `authority`:**
+- `allow` hands rows to the supervisor (`publish` for a repo that asks for pull requests without asking);
+- `alwaysAsk` adds the repo's own rows, always escalated and never delegable;
+- `neverDelegate` defaults to `ui-design` and `install-software`. `credentials`, `credential-stores` and `permissions` are never delegated whatever it says: the first two are the person's secrets, and baton never changes settings (D-14).
+
+The launch copies `authority` and `humanBeforePublish` into the state.
+
+**Delegation during a run.** The person's words ("autorizo el reset y push/PR; el diseño no") are split into rows with their scope.
+- Rows that cannot be delegated are refused in one line that says why.
+- The rest go into `settled.md`, under `## Delegated by the person` with the words verbatim, and into `state.authority.delegated`.
+- Each decision under a delegation is a row "decided under delegation (<row>: <scope>)", listed at the person's next word.
+- A delegation lasts the run, and a scope that does not clearly cover a stop is not delegated.
+
+**The plan's pauses.** Between parts and inside one (a result with `pause:`), they are decided this way when delegated, and otherwise escalated with buttons. The implementer gets a new message, "answer from the person's delegation".
+
+**`humanBeforePublish: "ask-once"`.** One question at the run's first publication, partial or final, lists everything the run will publish: each push in order, each pull request with its title and body, the sibling lines and comments, and local-CI comments. The list waits in `publishList`. The yes moves it into `publishApproved`, and later publications in that list go without asking. Merge is never in it.
+
+**Clashes.** The proposal and `/baton:plan` now show each clash between the plan and the person's answers in earlier runs (`settled.md`) before the yes.
+
+**Probes** (`probes-6.md`, 1.81 USD), in the lab, with a fake `gh` first on the `PATH` (no network) and local bare remotes for the three repos:
+- «autorizo el reset y push/PR; el diseño también» delegated `destructive` (the reset) and `publish` (push/PR), and refused the design in one line ("`ui-design` está en `neverDelegate`");
+- a pause inside a part, the reset, was decided under that delegation with its row and no question;
+- the design pause was escalated with buttons;
+- with `ask-once`, the first publication (a partial delivery of backend at a pause) asked once, listing the pushes and pull requests of all three repos;
+- after the yes, backend was pushed and its pull request opened;
+- the final delivery published frontend and root, with the snapshot and the sibling pull requests, without another question.
+
+Seen and fixed: the list waiting for the yes has its own field, and a partial pull request's body is a short note, with the report added later as a comment. Not seen live: a real `gh`, and a delegation taken back.
