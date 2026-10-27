@@ -6,12 +6,12 @@
   "mode": "normal",
   "status": "running",
   "iteration": 1,
-  "workspace": "worktree",
+  "workspace": "checkout",
   "sessions": "per-part",
   "checkout": "C:/path/to/repo",
-  "worktree": "C:/path/to/repo/.claude/worktrees/baton-example",
+  "worktree": null,
   "runDir": "C:/path/to/repo/.claude/runs/example",
-  "workerRunDir": "C:/path/to/repo/.claude/worktrees/baton-example/.claude/runs/example",
+  "workerRunDir": "C:/path/to/repo/.claude/runs/example",
   "repoRunId": "20261101-example",
   "coordinator": { "sessionId": "local_…", "model": "opus", "effort": "high" },
   "proposal": {
@@ -20,8 +20,8 @@
     "revisions": 2
   },
   "repos": {
-    "root": { "path": "C:/path/to/repo/.claude/worktrees/baton-example", "branch": "feat/example", "base": "main", "baseSha": "abc1234", "createdBy": "baton" },
-    "backend": { "path": "C:/path/to/repo/.claude/worktrees/baton-example/backend", "branch": "feat/example", "base": "develop", "baseSha": "def5678", "createdBy": "baton" }
+    "root": { "path": "C:/path/to/repo", "branch": "feat/example", "base": "main", "baseSha": "abc1234", "createdBy": "baton" },
+    "backend": { "path": "C:/path/to/repo/backend", "branch": "feat/example", "base": "develop", "baseSha": "def5678", "createdBy": "baton" }
   },
   "gates": ["npm test"],
   "install": "npm ci",

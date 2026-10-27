@@ -214,4 +214,15 @@ Not seen live (as of part 3): a start inside a chain of events in the app, a rea
 - **The real launch** made `baton/lab` in all three repos with no worktree, and wrote a brief with each part's **Review from** line per repo.
 - **The last part's `done`** delivered in the order backend → frontend → root, with the snapshot commit before root, and wrote that order in the report.
 
-Seen and fixed in the probes: the launch had written `state.delivery` as a bare string, so the order reached the report but not the state, and `reviewRounds` as 2. The proposal's state write now names both. Not probed: `pr` and `merge` with several repos (the lab has no `gh`), and a partial delivery at a pause.
+Seen and fixed in the probes: the launch had written `state.delivery` as a bare string, so the order reached the report but not the state, and `reviewRounds` as 2. The proposal's state write now names both. Not probed: `pr` with several repos (the lab has no `gh`), and a partial delivery at a pause.
+
+Review r1 of part 4 found four gaps, now closed:
+- **F-01:** `deliver.md` now says what `<path>` is: each repo's folder in the checkout, the root included, because a worktree run's worktree is gone by the publishing step. A worktree run merges only when the person's checkout is already on the base and clean, as in 0.2, and is never switched.
+- **F-02:** the per-part submodule check now applies only to a part that made a snapshot. Gitlinks that move during the run wait for the delivery.
+- **F-03:** `merge` with several repos reads the root's status with `--ignore-submodules=all`. A repo that cannot merge, and every repo after it, is delivered as `branch` with the reason. The snapshot compares and records the submodule's HEAD after its own step: its branch's head, or its base's merge commit with `merge`.
+- **F-04:** a partial delivery asks one question at its pause (publish and continue, continue without publishing, stop), and a failure keeps the pause waiting instead of `done-not-delivered`.
+
+Probes (0.62 USD):
+- a lab part on root and backend was taken as done with no snapshot asked for;
+- a `merge` delivery across the lab merged backend into `develop` and made the snapshot at that merge commit before the root merged into `main`;
+- a one-repo worktree run, once its worktree was removed, merged into the checkout's `main`.
