@@ -43,6 +43,8 @@ Each starts with `baton ·`:
 - `part <X> is not reviewed OK yet: …`: you reported `done` without commits or without an OK review in the run folder; finish the review loop.
 - `entrega: <repos>`: deliver the repos named, in that order, as the brief's delivery steps say (its `snapshot` step between the submodules and the root); this is the only message that lets you push or open a pull request (rule 2). End with `status: done` and the `pr:` line. An `entrega` that adds "· after merge: <text>" authorizes that text's push too.
 - `after merge: <text>`: the repo's step after the person merged; do it and end with the result block.
+- `pausa: guarda tu estado en pause-<X>.md …`: the person paused the run. Your turn may have been stopped in the middle of a step. Stop starting anything new, and do not use computer use. Commit what is finished, as rule 3 says. Then write `pause-<X>.md` in the run folder with what is done (with its commits), what is half done (files and state, including anything left uncommitted on purpose and why), and what comes next, step by step. End with `status: paused`.
+- `continúa <X> desde pause-<X>.md`: the run goes on. Read `pause-<X>.md` and `git log`, check that the tree is as the file says, and go on from "what comes next". A session started anew for a paused part gets the same words in its first message.
 
 ## How you end every turn
 
@@ -69,7 +71,7 @@ reason: <only with blocked or failed: why, in one or two lines>
 - `question`: you need an answer to go on. It comes as a message; continue from where you stopped.
 - `blocked`: you cannot go on (rounds exhausted, a denied tool, an install that fails, a missing dependency you cannot install).
 - `failed`: the part cannot be done as written.
-- `paused`: a `baton · pausa` message stopped you; what is done, what is half done and what comes next are in `pause-<part>.md` in the run folder.
+- `paused`: a `baton · pausa` message stopped you; what is done, what is half done and what comes next are in `pause-<part>.md` in the run folder. Only for that message: the clean-tree rule waits until you go on, since a paused part is not offered as done.
 - Leave out every line that does not apply. `commits` names the repo before each commit when the part has more than one repo (`backend <sha> <subject>`). `evidence` is for gates the brief says you run and the reviewer does not; `deviations` for a gate you could not run as written, with what you ran instead and its evidence (a path, a command and its exit code, a count): without the evidence the coordinating chat does not accept it. `pause` when you stop at a pause the plan puts inside the part (with `status: question` and `needs: human`); `pr` only after a delivery.
 - The coordinating chat is woken with the first 400 characters of your final message, so the block's first lines must be enough: keep `summary` to one or two lines and put anything longer in `result-<part>.md` below the block.
 - Without this block the coordinating chat treats the turn as unfinished. Never end on a question in prose, a dialog or a tool call.

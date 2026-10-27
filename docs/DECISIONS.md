@@ -343,3 +343,30 @@ It then shows what it understood and asks the doubts (at most four, only those t
 - After one line of the copy changed, the dry run named both hashes and did not use the map.
 
 Not seen live: the doubts asked with AskUserQuestion (the probes had no one to answer), a launch from a map, and the hash check at the launch.
+
+**D-69 · Pause, continue and the limits (part 8).**
+
+**Pause is not stop.** «para», «pausa» or `/baton:status pause` pauses the run so it can go on; «stop» or «cancela el plan» ends it, as before. An unsure «para» is a pause, which loses nothing.
+- **The pause:** `stop_session` for each part session running a turn, then the message "baton · pausa: guarda tu estado en `pause-<X>.md` (qué está hecho, qué está a medias, qué toca después), no uses computer use y termina con status: paused".
+- **The state:** `status: paused`, the parts `paused`, `paused {at, from, waiting, parts}`, and a `decisions.md` row. The person's word reset the quota, so the messages fit.
+- **The implementer** commits what is finished, writes `pause-<X>.md` and ends with `status: paused`.
+- **While paused,** a result is checked but nothing starts and nothing is sent. A verified `done` waits in `paused.next`, anything else in `paused.held`.
+- **«continúa»:** a live session gets "baton · continúa <X> desde `pause-<X>.md`". A session that is gone is started again for the same part, with the same brief and start commits, the pause file and a coordinator `beforePart`. Then the run goes back to its earlier status, asking a waiting question again.
+
+**The limits.** Both counts are read after the event's own additions:
+- **at 8,** messages or wakes, a push ("baton will need a word from you soon") and the run goes on;
+- **at 9,** the next message or start is held with «Continuar».
+
+This keeps a margin below the app's 10, where 0.2 held at the 10th.
+
+**Another chat.** `/baton:status continue` from a chat that is not `coordinator.sessionId` says so: the part at work will not wake this chat, and «sigue» reads its result. `coordinator` changes to this chat when it starts a session for the run, since only those sessions wake it.
+
+**Archiving** happens only with the person's yes: in the proposal («archiva las sesiones verificadas»), later, or at the close. It sets `archiveSessions`, and each part's session is archived once the part is verified `done`. A refusal (Phase 3's «live work» for hours) keeps `archived: false` and counts in `archiveTries`, retried at the coordinator's next turn. After the third refusal, one line with the session's link.
+
+**Probes** (`probes-8.md`, 1.03 USD), with a session stub that adds `stop_session`, `archive_session`, sessions known in advance and another chat's identity:
+- «para» stopped B's turn, sent the pausa message and left the run `paused` with its row;
+- «continúa» sent "baton · continúa B desde `pause-B.md`" to the live session;
+- with `wakesSinceUser` reaching 8 the push went out and the message was sent; reaching 9, it was held with «Continuar»;
+- a chat that was not the coordinator said so, handled the waiting `done`, started the next part, and became the coordinator.
+
+Not seen live: `stop_session` on a real turn (and whether the app delivers a message right after it), a session gone at «continúa», archiving at all, and its refusals.

@@ -34,7 +34,7 @@
       "implementer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Steps prescribed by the plan; a mistake is cheap" },
       "reviewer": { "model": "sonnet", "effort": "medium", "skills": [], "reason": "Mechanical part" },
       "critic": null, "weight": "S", "uses": [], "pauses": [],
-      "session": { "id": "local_…", "name": "baton-example-p1", "archived": false },
+      "session": { "id": "local_…", "name": "baton-example-p1", "archived": false, "archiveTries": 0 },
       "startSha": { "root": "abc1234" }, "endSha": { "root": "bcd2345" },
       "rounds": 2, "verdict": "OK", "logged": 1, "decisions": 1, "retries": 0, "replanned": false,
       "verified": { "at": "2026-11-01T11:00:00Z", "clean": true, "reviewerModel": "claude-sonnet-5-5", "deviations": [] }
@@ -76,8 +76,11 @@
   "untrackedPolicy": "exclude-local",
   "closedAt": null,
   "closing": { "phase": null, "steps": [], "sessions": [] },
+  "archiveSessions": false,
+  "paused": null,
   "messagesSinceUser": 1,
   "wakesSinceUser": 3,
+  "warnedAt8": null,
   "lastSentAt": "2026-11-01T11:00:00Z",
   "waiting": null,
   "presses": [

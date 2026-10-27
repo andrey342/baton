@@ -1,15 +1,15 @@
 ---
 name: status
 description: >-
-  Show where baton's plans in this repo stand (parts done, at work and pending, what waits for the person, the implementer session, the delivery), pick a plan up again after the app was closed, stop it, or close a delivered one once the person has merged it (the repo's close hooks, back to the base, local exclusions removed). Use when the person asks how a plan is going, to continue or resume it, to stop it, or says it is merged, e.g. "how is the plan going?", "¿cómo va el plan?", "sigue", "continúa con el plan", "retoma baton", "para el plan", "stop the plan", "ya está mergeado, cierra".
-argument-hint: "[run] [continue|stop|close]"
+  Show where baton's plans in this repo stand (parts done, at work and pending, what waits for the person, the implementer session, the delivery), pause a plan so it can go on later and continue it (from this chat or another), pick it up again after the app was closed, stop it for good, or close a delivered one once the person has merged it (the repo's close hooks, back to the base, local exclusions removed). Use when the person asks how a plan is going, to pause, continue or resume it, to stop it, or says it is merged, e.g. "how is the plan going?", "¿cómo va el plan?", "para", "pausa el plan", "sigue", "continúa con el plan", "retoma baton", "stop the plan", "cancela el plan", "ya está mergeado, cierra".
+argument-hint: "[run] [pause|continue|stop|close]"
 ---
 
 # /baton:status
 
-Arguments: `$ARGUMENTS`: an optional run id (the folder name under `.claude/runs/`) and an optional action. "sigue", "continúa", "retoma" and "continue" mean `continue`; "para" and "stop" mean `stop`; "cierra", "close", "merged" and "ya está mergeado" mean `close`.
+Arguments: `$ARGUMENTS`: an optional run id (the folder name under `.claude/runs/`) and an optional action. "sigue", "continúa", "retoma" and "continue" mean `continue`; "para", "pausa" and "pause" mean `pause` (D10: the run can go on later); "stop", "detén el plan", "cancela el plan" and "termina el plan aquí" mean `stop`, the end of the run; "cierra", "close", "merged" and "ya está mergeado" mean `close`. When "para" comes with words that end the run ("para el plan del todo", "no sigas nunca"), it is `stop`; unsure, it is `pause`, which loses nothing.
 
-The app's tools named below (`get_session`, `stop_session`) often arrive deferred: when one is listed only by name, load it with ToolSearch (`select:<name>`) before deciding you do not have it. The run's files and their fields are described in `${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md` ("Files"); `state.json` is shaped like `${CLAUDE_PLUGIN_ROOT}/templates/state.json`. Talk to the person in the language of the conversation. When the conversation holds nothing from them but the command, take the language of their earlier messages or of their own CLAUDE.md (user memory or instructions in your context); if nothing says, the plan's language (D-41).
+The app's tools named below (`get_session`, `stop_session`, SendMessage, `start_session`) often arrive deferred: when one is listed only by name, load it with ToolSearch (`select:<name>`) before deciding you do not have it. The run's files and their fields are described in `${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md` ("Files"); `state.json` is shaped like `${CLAUDE_PLUGIN_ROOT}/templates/state.json`. Talk to the person in the language of the conversation. When the conversation holds nothing from them but the command, take the language of their earlier messages or of their own CLAUDE.md (user memory or instructions in your context); if nothing says, the plan's language (D-41).
 
 ## Which runs
 
@@ -27,9 +27,25 @@ For each open run, and the last finished one, a few lines:
 
 A report changes nothing: do not send messages, start sessions or deliver from it. End with what the person can say next ("sigue" to pick it up, "para" to stop it).
 
+## pause
+
+For an open run that is `running` or `waiting` (D10). The person's word resets the quota (`messagesSinceUser` and `wakesSinceUser` to 0), so there is room for these messages.
+
+1. **Read, in one message:** `state.json`, `get_session` for each part whose status is `working` (its `session.id`; v1: `worker.sessionId`), and the time.
+2. **Act, in one message:**
+   - `mcp__ccd_session_mgmt__stop_session` for each of those sessions that is running a turn now, to stop it at once;
+   - then, to each of them, SendMessage "baton · pausa: guarda tu estado en `pause-<X>.md` (qué está hecho, qué está a medias, qué toca después), no uses computer use y termina con status: paused", each adding 1 to `messagesSinceUser`;
+   - Write `state.json`: `status: paused`, those parts `paused`, `paused: { "at", "from": <the status before>, "waiting": <the waiting before>, "parts": [<ids>] }` and `waiting: null`;
+   - a `decisions.md` row "paused by the person: <parts>".
+   
+   A part with no session at work (a card not clicked, a session gone) gets no message: its line says so, and `continue` starts it from its brief.
+3. **The one line:** what was paused, and that "sigue" or `/baton:status continue` picks it up. Each session's `paused` result then reaches `/baton:event`, which checks its `pause-<X>.md` and leaves the run paused.
+
+The person's «para» while a turn of theirs has nothing at work (a run `waiting` on a question, say) still pauses: the waiting question is kept in `paused.waiting` and asked again on `continue`.
+
 ## continue
 
-Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md`; load it unless its text is already in this conversation) for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the delivery (`${CLAUDE_PLUGIN_ROOT}/skills/event/deliver.md`) from the step that failed. For a `dry-run` (a 0.2 run), say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree. For a `proposed` run, follow "Resuming" in `/baton:event` as for any other run: an approved table goes to the launch, an unapproved one is shown again with its buttons.
+For a `paused` run, follow "Resuming a paused run" in `/baton:event`. Otherwise, follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md`; load it unless its text is already in this conversation) for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the delivery (`${CLAUDE_PLUGIN_ROOT}/skills/event/deliver.md`) from the step that failed. For a `dry-run` (a 0.2 run), say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree. For a `proposed` run, follow "Resuming" in `/baton:event` as for any other run: an approved table goes to the launch, an unapproved one is shown again with its buttons.
 
 ## close
 
@@ -37,9 +53,11 @@ For the closable run (one without a run id; with several, list them and ask whic
 - a `delivered` run, once the person says they merged: the repo's `onClose` and `afterMerge`, then each repo of a checkout run back to its base, and the `excluded` lines removed;
 - a `stopped` run: nothing was merged, so no `onClose` or `afterMerge`, only the repos back to their bases and the exclusions removed.
 
-This turn is the person's, so a session the close needs may be started. A run that is not closable: say what it waits for instead.
+This turn is the person's, so a session the close needs may be started. A run that is not closable: say what it waits for instead. When the person's words also ask to archive the sessions («y archiva las sesiones»), that is the yes for "Archiving sessions" in `/baton:event`: each part's session not yet archived is archived, with its refusals handled there.
 
 ## stop
+
+`stop` is the end of the run (D10); to go on later, `pause`. A `paused` run can be stopped too.
 
 1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`. Lines the run added to an exclude file (`state.excluded`) stay until the close; say so, and that `/baton:status close` removes them.
 2. If the implementer session (v1 `worker`, v2 the current part's `session`) is working, stop its turn with `mcp__ccd_session_mgmt__stop_session` when you have it; never archive or delete it.
