@@ -11,6 +11,9 @@ Options on the `baton:` line, all optional, space-separated `key=value`:
   delivery=branch|pr|merge|none   overrides the profile for this plan
   branch=<name>   work on this branch (an existing one, for a second iteration on an open pull request)
   base=<ref>      base branch for the worktree and the pull request (default: the profile's, else the current branch)
+  partHeading=<regex>   headings that are parts, with a named group id, for a plan numbered its own way (e.g. ^(?:\d+(?:\.\d+)*\s+)?(?<id>P\d+|CA)\b)
+  decided=§5,§13   numbered sections that count as "Already decided"
+A plan in another format can stay as it is: /baton:plan --adapt <plan> writes a map baton uses instead.
 -->
 
 ## Already decided

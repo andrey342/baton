@@ -2,6 +2,7 @@
   "version": 2,
   "run": "example",
   "plan": "docs/plans/example.md",
+  "planMap": { "path": ".claude/runs/_maps/example.json", "hash": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad", "madeAt": "2026-11-01T09:40:00Z" },
   "title": "Example plan",
   "mode": "normal",
   "status": "running",

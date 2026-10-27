@@ -317,3 +317,29 @@ Seen and fixed:
 - the earlier runs' files are found with a Glob and read whole, since a Grep glob with a slash matched nothing and hand-run files have no fixed format.
 
 Not seen live: a real `gh`, a delegation taken back, a profile's `allow` and `alwaysAsk`, a `merge` under a delegated `publish`, and a real session running an `entrega`.
+
+**D-68 · A tolerant plan format and `/baton:plan --adapt` (part 7).**
+
+**What `/baton:run` reads** (step 1.5):
+- **`partHeading`**, in the profile's `plan.partHeading` or the plan's `partHeading=`: a regular expression with a named group `id`, matched against a heading's text at any level. Ids are alphanumeric (`P1`, `CA`, `P4fix`), and numbered headings work («7.1 P1 — …»). A heading it does not match is never a part.
+- **The title never counts as a part**: the only level-1 heading is the title, even when it matches.
+- **Inline acceptance**: "**Aceptación P1:** …" or "Acceptance: …" on one line is one criterion, which the reviewer breaks down.
+- **`decided`**, in the plan's `decided=§5,§13,§3.4` or the profile's `plan.decided`: those numbered sections count as decided, next to the "Already decided" section. The brief points to their lines in the plan copy rather than copying them.
+- **Pauses inside a part** ("Parada antes de P2.8", "antes del reset de P2.8") go into `parts[].pauses[]` with their text. The brief tells the part to stop there with `status: question`, `pause: <id>` and `needs: human`, and the coordinator treats them as the `plan-pause` row (D-67).
+
+**`--adapt <plan>`.** MSG's plans are versioned documents, so `--adapt` never changes them. It analyses the plan with the rules above, plus what the plan's own text says:
+- a step the plan's order names, such as «Cierre de la Parte A», becomes a part with an id, and `idFrom` says why;
+- repos come from a partition table or from paths;
+- a list of the plan's stops gives the pauses inside parts;
+- "pausa obligatoria" gives a pause between parts, and the delivery just before it becomes that pause's `pauseDeliver`.
+
+It then shows what it understood and asks the doubts (at most four, only those that change parts, repos or pauses). With no one to answer, it takes the reading that stops more and records it. The map goes to `.claude/runs/_maps/<plan>.json` (`templates/map.json`), out of git, with the plan's `git hash-object`, and the plan's hash is checked again after writing. It may propose a `baton:` line as text, never written into the plan.
+
+**The map in `/baton:run`.** A map with the same hash replaces the rules, and its doubts are shown above the table. A different hash is said, with both hashes and the way out (`--adapt` again), and the plan is read by the rules. The launch checks the hash once more (`planMap` in the state), so a plan changed between the proposal and the yes stops it.
+
+**Probes** (`probes-7.md`, 1.23 USD). They ran on a lab copy of `C:/MSG/docs/plans/plan-fase-3-servidor-mcp-remoto.md`, read but never written there; its hash was `0763221…` before and after.
+- `--adapt` found P0, P1, P2, P3, CA, P4 and P5, the pauses before P2.8 and P4.0 inside their parts, and the pause A→B before P4 with backend's partial delivery. The plan's hash was the same before and after.
+- A dry run with the map showed the model table of the seven parts.
+- After one line of the copy changed, the dry run named both hashes and did not use the map.
+
+Not seen live: the doubts asked with AskUserQuestion (the probes had no one to answer), a launch from a map, and the hash check at the launch.
