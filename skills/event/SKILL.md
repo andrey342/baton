@@ -57,7 +57,7 @@ By the result's `status`:
 
 - **any result while the run is `paused`** (D10): the part's session answering the `baton · pausa` message, or a turn that ended before it arrived.
   - **paused**: `pause-<X>.md` exists and says what is done, half done and next. Then a `decisions.md` row "part <X> paused: pause-<X>.md", and the run stays `paused`. Without the file: "baton · part <X>: write `pause-<X>.md` as the pausa message says, then end with status: paused."
-  - **done**: checked as below. When every check passes, the part becomes `done` and leaves `paused.parts`, but nothing starts: the next part waits for «continúa», and `paused.next` holds its id. A check that fails is not sent now: it goes into `paused.held`, sent on «continúa».
+  - **done**: checked as below. When every check passes, the part becomes `done` and leaves `paused.parts`, but nothing starts, nothing is asked and nothing is delivered: what follows the part waits for «continúa». `paused.next` holds the next part's id, or `"deliver"` when it was the last part. «continúa» then goes through "Then the next part" below, with its pause and its delivery. A check that fails is not sent now: it goes into `paused.held`, sent on «continúa».
   - **question**, **blocked** or **failed**: recorded, and nothing is sent. The part stays `paused`, and `paused.held` keeps the result, handled on «continúa» as if it had just arrived.
 - **any result while the run is `closing`** is not a part's, and goes by `closing.phase`:
   - **`deliver`** (a `baton · entrega` was sent): it is the delivery's result, handled by "With a `deliver` hook" in `deliver.md`. A partial one then ends as that file's step 5 says: the next part starts (a delegated pause, or the person's «Publish … and continue» already given), or the pause's question waits;
@@ -173,15 +173,19 @@ When the person says "sigue" or "continue", runs `/baton:status continue`, or th
 
 On «continúa», "sigue" or `/baton:status continue`, for a run `paused` (D10). The person's word resets the counts, as in "The person's answer".
 
-1. **Read, in one message:** `state.json`; for each part in `paused.parts`, `pause-<X>.md` and `get_session` of its session; `get_session` for this chat (step 0 of "Resuming"); and the time.
+1. **Read, in one message:** `state.json`; for each part in `paused.parts`, `pause-<X>.md` and `get_session` of its session; `get_session` for this chat (step 0 of "Resuming"); and the time. With `paused.next` set, also what step 1 of this skill reads for a `done`, when not yet in this conversation: `supervisor.md` when the next part has `pauseBefore`; `deliver.md` (and `templates/report.md`) for a `pauseDeliver` or for `"deliver"`; `hooks.md` when the state has hooks; and the `rev-parse HEAD` of the next part's repos.
 2. **Decide.** A part that `done` closed while paused is no longer in `paused.parts` and gets nothing. For each part still in it, the first case that applies:
    - **A card still waiting** (`paused.waiting.kind: "start"` for it, or `session.id` null with a `taskId`): follow "a card still waiting" in "The person's answer": `list_sessions` by its name, then `dismiss_task`, and start a session only when the app confirms it withdrew the card. Never "gone" below: the person may have clicked the card during the pause.
    - **Its session is alive:** "baton · continúa <X> desde `pause-<X>.md`". With no `pause-<X>.md` (the session never answered the pausa), "baton · continue part <X> from your brief `<workerRunDir>/brief.md` (or its replan brief); check `git log` for what is done."
    - **Its session is gone or archived:** a new session for the same part, as "The next part's session" says, with the same brief and the part's same `startSha`. A coordinator `beforePart` hook runs first. The prompt adds "Your part was paused: read `pause-<X>.md` in the run folder first, then continúa <X> desde `pause-<X>.md`." It may be started, since this turn is the person's.
-   - **A part that `done` closed while paused** (`paused.next`): the next part starts as "The next part's session" says.
    - **Anything in `paused.held`:** handled as if it had just arrived (steps 2 and 3 of this skill).
+   
+   Then, after that loop, **a `done` closed while paused** (`paused.next` set) goes on exactly as "Then the next part" after a `done` in step 2 says, from the part that closed:
+   - the next part has `pauseBefore`: its `plan-pause` question, or its delegation, with its `pauseDeliver`;
+   - another part: its start;
+   - `paused.next: "deliver"` (the last part closed): the delivery, as `deliver.md` says.
 3. **Write, in one message:**
-   - `state.json`: `status` back to `paused.from` (`running`, or `waiting` with `paused.waiting` asked again, unless the card's case above settled it), only the parts still `paused` back to `working`, `paused: null`;
+   - `state.json`: `status` back to `paused.from` (`running`, or `waiting` with `paused.waiting` asked again, unless the card's case above settled it), only the parts still `paused` back to `working`, `paused: null`. When the step after `paused.next` asks, waits or delivers, that step's status wins (`waiting` on the plan's pause, `closing`, `delivered`);
    - the messages or starts, each counted in `messagesSinceUser`;
    - a `decisions.md` row "continued by the person: <parts>";
    - the one line.

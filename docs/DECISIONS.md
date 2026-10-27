@@ -350,7 +350,7 @@ Not seen live: the doubts asked with AskUserQuestion (the probes had no one to a
 - **The pause:** `stop_session` for each part session running a turn, then the message "baton · pausa: guarda tu estado en `pause-<X>.md` (qué está hecho, qué está a medias, qué toca después), no uses computer use y termina con status: paused".
 - **The state:** `status: paused`, the parts `paused`, `paused {at, from, waiting, parts}`, and a `decisions.md` row. The person's word reset the quota, so the messages fit.
 - **The implementer** commits what is finished, writes `pause-<X>.md` and ends with `status: paused`.
-- **While paused,** a result is checked but nothing starts and nothing is sent. A verified `done` leaves `paused.parts` and its next part waits in `paused.next`; anything else waits in `paused.held`. A card still waiting stays: «continúa» follows the card flow (`list_sessions`, `dismiss_task`, a start only once the card is withdrawn), never a new start on a guess.
+- **While paused,** a result is checked but nothing starts and nothing is sent. A verified `done` leaves `paused.parts`, and `paused.next` holds its next part (or `"deliver"` after the last one); anything else waits in `paused.held`. On «continúa», `paused.next` goes through the same steps as any `done`: the plan's own pause with its partial delivery, the next part's start, or the delivery. A card still waiting stays: «continúa» follows the card flow (`list_sessions`, `dismiss_task`, a start only once the card is withdrawn), never a new start on a guess.
 - **«para» elsewhere:** in `proposed` it is `/baton:run`'s stop; in `closing` the delivery or close under way finishes first.
 - **«continúa»:** a live session gets "baton · continúa <X> desde `pause-<X>.md`". A session that is gone is started again for the same part, with the same brief and start commits, the pause file and a coordinator `beforePart`. Then the run goes back to its earlier status, asking a waiting question again.
 
@@ -367,13 +367,14 @@ This keeps a margin below the app's 10, where 0.2 held at the 10th.
 - after its own partial delivery, when its session makes one;
 - for the last part, at the close, after its hooks. A refusal (Phase 3's «live work» for hours) keeps `archived: false` and counts in `archiveTries`, retried at the coordinator's next turn. After the third refusal, one line with the session's link.
 
-**Probes** (`probes-8.md`, 2.15 USD), with a session stub that adds `stop_session`, `archive_session`, sessions known in advance and another chat's identity:
+**Probes** (`probes-8.md`, 2.90 USD), with a session stub that adds `stop_session`, `archive_session`, sessions known in advance and another chat's identity:
 - «para» stopped B's turn, sent the pausa message and left the run `paused` with its row;
 - «continúa» sent "baton · continúa B desde `pause-B.md`" to the live session;
 - with `wakesSinceUser` reaching 8 the push went out and the message was sent; reaching 9, it was held with «Continuar»;
 - a chat that was not the coordinator said so, handled the waiting `done`, started the next part, and became the coordinator;
 - after review r1: a `done` that arrived while paused left `paused.parts`, and «continúa» started the next part without a message to the done part;
 - «para» with a card waiting left the card, and «continúa» listed, withdrew and then started once;
-- with archiving on, the last part's `done` sent its `entrega` and archived nothing.
+- with archiving on, the last part's `done` sent its `entrega` and archived nothing;
+- after review r2: the last part closed while paused, and «continúa» delivered it; a next part with the plan's own pause got that pause's question on «continúa», not a start.
 
 Not seen live: `stop_session` on a real turn (and whether the app delivers a message right after it), a session gone at «continúa», archiving at all, and its refusals.
