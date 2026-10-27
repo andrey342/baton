@@ -187,4 +187,31 @@ On the second answer, the coordinator starts after one more `list_sessions`. A s
 
 Review r3 found that the launch started the first session "as `/baton:event` says" without ever loading that skill. Now batch 4 reads it, and batch 7 spells out the start's fixed parameters again. The "keep waiting" branches say `status` and `waiting` stay as they are, and "Resuming" looks for a card's session by name before it starts one. A full launch with the stub, proposal then yes (0.72 USD), made one start with `wake_when_done: true`, the worktree as `cwd`, `baton-notas-1` on its row, and a prompt naming `implementer.md`, `brief.md` and `from root <sha>`.
 
-Not seen live: a start inside a chain of events in the app, a real card clicked (and what `dismiss_task` answers then, or once the card is gone), whether `list_sessions` lists a session a card started, the effort raised by an event, and the pull request check.
+Not seen live (as of part 3): a start inside a chain of events in the app, a real card clicked (and what `dismiss_task` answers then, or once the card is gone), whether `list_sessions` lists a session a card started, the effort raised by an event, and the pull request check.
+
+**D-65 · Several repos, and `workspace: "checkout"` (part 4).**
+
+**Repos and branches.** The profile's `repos` (`name`, `path`, `base`, `rules`, `reviewSkills`) make a run of several repos; without them there is one repo, `root` at `.`. Every repo gets a branch of the same name from its own base. `state.repos` holds each repo's `path`, `branch`, `base` and `baseSha`, and each part holds `startSha` and `endSha` per repo. A part names its repos in a `**Repos:**` line, or the proposal's analysis picks them ("(analysis)" in the table), and the table gets a Repos column and a line with each repo's branch and base.
+
+**The brief.** It lists every repo, and gives each part a `**Review from:**` line with one "<repo> `<start commit>` in `<path>`" per repo of the part. The reviewer's and the Critic's prompts are built from that line, so each repo's diff is read from its own start.
+
+**The workspace.**
+- In 0.3 several repos need `workspace: "checkout"`: a worktree of the root would carry no branch of its submodules. `worktree` stays as in 0.2, for one repo.
+- `checkout` runs in the folder the person uses, where runDir and workerRunDir are one folder. It allows one open run per checkout, since parts of two runs would share branches and files. It needs a clean start in each repo, untracked files following `untrackedPolicy` (`stop` or `ignore`; `exclude-local` comes with the hooks).
+- The branches are made with `git -C <repo> switch -c <branch> <base>`, or `git switch <branch>` when the plan already has them, never with force. They stay after the delivery, and the report says how to go back to each base once the person has merged.
+- A root that holds other repos of the run as submodules is checked with `status --ignore-submodules=all`: its gitlinks move as the submodules work, and each submodule is checked on its own.
+
+**The delivery** follows `deliveryOrder`, or by default the repos' order with a root after its submodules.
+- Before the root, and after the submodules' push for `pr`, a snapshot commits the root's gitlinks at the submodules' branch heads. It is the only commit baton itself makes; a `snapshot` hook replaces it in part 5.
+- `pr` opens one pull request per repo, and each body ends with "Sibling pull requests: …".
+- `merge` switches each repo to its base and merges, stopping at the first repo that does not merge cleanly.
+- A pause line with `deliver: <repos>` makes a partial delivery of those repos before the pause's question.
+- The order, any partial deliveries and each repo's outcome go into `state.delivery` and the report.
+
+**Probes** (`probes-4.md`, 1.27 USD). The lab is a root on `main` with `backend` and `frontend` as submodules from local bare remotes on `develop`, a checkout profile and delivery `branch`, and the tests used part 3's stub of the app's session tools.
+- **The dry run** showed the three branches and bases and "no crea worktree", and created nothing in any repo.
+- **A second `/baton:run`**, with another run open in the checkout, stopped before proposing and said why.
+- **The real launch** made `baton/lab` in all three repos with no worktree, and wrote a brief with each part's **Review from** line per repo.
+- **The last part's `done`** delivered in the order backend → frontend → root, with the snapshot commit before root, and wrote that order in the report.
+
+Seen and fixed in the probes: the launch had written `state.delivery` as a bare string, so the order reached the report but not the state, and `reviewRounds` as 2. The proposal's state write now names both. Not probed: `pr` and `merge` with several repos (the lab has no `gh`), and a partial delivery at a pause.
