@@ -1,13 +1,13 @@
 ---
 name: status
 description: >-
-  Show where baton's plans in this repo stand (parts done, at work and pending, what waits for the person, the implementer session, the delivery), pick a plan up again after the app was closed, or stop it. Use when the person asks how a plan is going, to continue or resume it, or to stop it, e.g. "how is the plan going?", "¿cómo va el plan?", "sigue", "continúa con el plan", "retoma baton", "para el plan", "stop the plan".
-argument-hint: "[run] [continue|stop]"
+  Show where baton's plans in this repo stand (parts done, at work and pending, what waits for the person, the implementer session, the delivery), pick a plan up again after the app was closed, stop it, or close a delivered one once the person has merged it (the repo's close hooks, back to the base, local exclusions removed). Use when the person asks how a plan is going, to continue or resume it, to stop it, or says it is merged, e.g. "how is the plan going?", "¿cómo va el plan?", "sigue", "continúa con el plan", "retoma baton", "para el plan", "stop the plan", "ya está mergeado, cierra".
+argument-hint: "[run] [continue|stop|close]"
 ---
 
 # /baton:status
 
-Arguments: `$ARGUMENTS`: an optional run id (the folder name under `.claude/runs/`) and an optional action. "sigue", "continúa", "retoma" and "continue" mean `continue`; "para" and "stop" mean `stop`.
+Arguments: `$ARGUMENTS`: an optional run id (the folder name under `.claude/runs/`) and an optional action. "sigue", "continúa", "retoma" and "continue" mean `continue`; "para" and "stop" mean `stop`; "cierra", "close", "merged" and "ya está mergeado" mean `close`.
 
 The app's tools named below (`get_session`, `stop_session`) often arrive deferred: when one is listed only by name, load it with ToolSearch (`select:<name>`) before deciding you do not have it. The run's files and their fields are described in `${CLAUDE_PLUGIN_ROOT}/skills/run/SKILL.md` ("Files"); `state.json` is shaped like `${CLAUDE_PLUGIN_ROOT}/templates/state.json`. Talk to the person in the language of the conversation. When the conversation holds nothing from them but the command, take the language of their earlier messages or of their own CLAUDE.md (user memory or instructions in your context); if nothing says, the plan's language (D-41).
 
@@ -31,9 +31,13 @@ A report changes nothing: do not send messages, start sessions or deliver from i
 
 Follow "Resuming" in `/baton:event` (`${CLAUDE_PLUGIN_ROOT}/skills/event/SKILL.md`; load it unless its text is already in this conversation) for this run. This turn is the person's, so a lost implementer session may be started again there. For a `done-not-delivered` run, retry the delivery (`${CLAUDE_PLUGIN_ROOT}/skills/event/deliver.md`) from the step that failed. For a `dry-run` (a 0.2 run), say it was a dry run and that `/baton:run <plan>` launches it for real, reusing its worktree. For a `proposed` run, follow "Resuming" in `/baton:event` as for any other run: an approved table goes to the launch, an unapproved one is shown again with its buttons.
 
+## close
+
+For a `delivered` run without `closedAt`, once the person says they merged: follow "The close" in `${CLAUDE_PLUGIN_ROOT}/skills/run/hooks.md`, which runs the repo's `onClose` and `afterMerge`, takes each repo of a checkout run back to its base, and removes the `excluded` lines. This turn is the person's, so a session the close needs may be started. Any other run: say what it waits for instead.
+
 ## stop
 
-1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`.
+1. Set `status: stopped` and `waiting: null` in `state.json`, with `updatedAt`. Lines the run added to an exclude file (`state.excluded`) stay until the close; say so, and that `/baton:status close` removes them.
 2. If the implementer session (v1 `worker`, v2 the current part's `session`) is working, stop its turn with `mcp__ccd_session_mgmt__stop_session` when you have it; never archive or delete it.
 3. Add a row to `decisions.md`: stopped by the person (a `proposed` run may have none yet: Write it with the header `| When | Part | Stop | Decision | Why |` and its separator first).
 4. Say what stays: the branch, the worktree with its path, and the commits so far (`git log --oneline <baseSha>..<branch>`, one per repo with several). To remove the worktree yourself later: `git worktree remove .claude/worktrees/baton-<run>`. A checkout run has no worktree: each repo stays on the plan's branch, and `git -C <path> switch <base>` takes it back. Nothing is deleted.

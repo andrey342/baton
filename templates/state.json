@@ -64,7 +64,11 @@
     "publishApproved": null
   },
   "locks": { "docker-stack": "local_…" },
-  "excluded": [],
+  "excluded": [{ "repo": "root", "path": "docs/plans/example.md", "line": "/docs/plans/example.md" }],
+  "hooks": {},
+  "branchCreatedBy": "baton",
+  "untrackedPolicy": "exclude-local",
+  "closedAt": null,
   "closing": { "steps": [], "sessions": [] },
   "messagesSinceUser": 1,
   "wakesSinceUser": 3,

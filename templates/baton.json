@@ -5,6 +5,7 @@
   "base": "main",
   "branchPrefix": "baton/",
   "branch": { "name": null, "createdBy": "baton" },
+  "repoRunId": "{{yyyymmdd}}-{{run}}",
   "repos": [],
   "untrackedPolicy": "stop",
   "hooks": {

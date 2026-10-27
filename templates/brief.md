@@ -24,6 +24,12 @@ Skills of this repo to load and follow: {{implementerSkills}}
 
 Gates of this repo, exactly as written: {{gates}}
 
+## The repo's own steps
+
+{{hooks}}
+
+These are this repo's own scripts and steps, as its profile writes them. A step for every part runs in every part, and a delivery step runs only on a `baton · entrega` message.
+
 ## Already decided (from the plan)
 
 {{alreadyDecided}}
