@@ -191,10 +191,33 @@ El dueño preguntó el 05-11 a las 10:14 por qué había 1.600 archivos (transcr
 | 12 | **Traza para analizar:** `runDir/events.jsonl` con una línea por evento (hora, origen del turno, parte, decisión, contadores, arranque o tarjeta) y, al entregar, el uso por sesión con `get_usage`. Este análisis tuvo que reconstruirlo todo de 1,1 GB de transcripts | `skills/event`, `templates/report.md` | todo este documento | El informe de una sonda incluye el coste por papel sin scripts |
 | 13 | **Windows y app:** `cwd` con la ruta nativa (`\`), y el `README` con los límites vistos: Remote Control, turnos ajenos y mensajes «queued» que hay que comprobar en el evento siguiente | `skills/event`, `README.md` | F13; 7 mensajes «queued» | Sonda de arranque en Windows sin reintento |
 
+### 6.1 Propuestas de la guía de modelos de Anthropic
+
+Las propuestas 14–17 no salen del run. Salen de contrastar baton, el 2026-11-09, con la guía [«Which Claude model should you build with?»](https://claude.dev/blog/which-claude-model-should-you-build-with/) (claude.dev, Addy Osmani, 2026-11-09), citada abajo como **[guía]**. Las cifras del run que usan son las de este documento.
+
+En lo esencial, baton ya sigue la guía, así que estas propuestas no cambian el diseño:
+- elige modelo y esfuerzo por papel y por parte, y la persona lo aprueba;
+- empieza en `medium` y deja `xhigh`/`max` para cuando el plan los pide;
+- cambia de modelo en un corte natural, con una sesión nueva por parte que arranca de un brief escrito; la caché pertenece al modelo que la escribió [guía];
+- usa Sonnet medium para las reviews repetidas;
+- deja Haiku para trabajo cuya salida prueba una gate.
+
+| # | Propuesta | Cambia | Evidencia | Cómo probarla |
+|---|---|---|---|---|
+| 14 | **Modelo de los subagentes del implementador:** <ul><li>baton trae un agente nuevo, `baton:explorer`: solo lectura (Read, Grep, Glob y shell de lectura), `model: haiku`, para buscar en el repo, leer logs y resumir la salida de los tests;</li><li>`implementer.md` manda usarlo en lugar del `Explore` integrado, que corre en el modelo de la sesión y no en Haiku [guía];</li><li>los subagentes que editan código o deciden siguen en el modelo de la parte. Usar `sonnet` en bloques de edición en paralelo (el patrón líder y trabajadores de la [guía]) es una opción que la tabla puede proponer y la persona aprueba. Nunca es un defecto, y antes hay que medirla en una sonda;</li><li>el informe da aparte el coste de los subagentes del implementador (con la propuesta 12).</li></ul> | `agents/explorer.md` (nuevo), `prompts/implementer.md`, `templates/brief.md`, `prompts/models.md` | La fila «Subagentes de trabajo de los implementadores» es la más cara del run: 969,24 USD, el 31,6 % (tabla 2.2). Según los `.meta.json` del archivo, sin contar reviews ni Critic, hubo 48 subagentes `general-purpose`, 16 `Explore` y 1 fork en `claude-opus-5-5`, frente a 1 `general-purpose` y 5 `Explore` en Sonnet. La [guía] reserva los modelos pequeños para tareas en las que un error se ve barato, y deja las ediciones en el modelo principal | Sonda: una parte en Opus que obliga a buscar en el repo. El transcript del subagente de búsqueda debe estar en `claude-haiku-5-5`, y el de edición, en el modelo de la parte |
+| 15 | **Fable y el orden de escalado en `models.md`:** <ul><li>Fable 5.2 (`fable`) entra en la lista de modelos con su precio: 8/40 USD por millón de tokens, con la lectura de caché a 0,20 USD, como Opus [guía]. El id exacto se confirma en una sonda;</li><li>punto de partida: una parte de riesgo alto, diseño abierto y tamaño L (un refactor grande, una migración). Y, en vez de proponer Opus en `xhigh` o `max`, la tabla ofrece Fable en `high`;</li><li>el techo de D-45 sigue: un implementador en Fable necesita un coordinador en Fable, y la tabla lo marca. El reviewer y la Critic no tienen techo (D-61), así que la Critic es el primer sitio donde probarlo;</li><li>«While the plan runs» pasa a tener orden. Cuando una parte sale más difícil que su fila: 1) autoverificación, un gate o test que pruebe el criterio que falla; 2) un nivel más de esfuerzo; 3) el modelo siguiente, con menos esfuerzo que el que tenía. Cada subida sigue siendo Spending.</li></ul> | `prompts/models.md`, D-63 | F9: P7 en Sonnet llegó a 4 FAIL seguidos de la Critic antes de subir. Según la [guía], en FrontierCode 2.0 Fable 5.2 en `high` puntuó como Opus 5.5 en `max` con un coste por tarea de la mitad, más o menos. Completa la propuesta 9 | Sonda de propuesta sobre un plan con una migración grande: la tabla ofrece Fable en `high`, con la marca del techo si el chat no es Fable |
+| 16 | **Esfuerzo de partida coherente:** `models.start.implementer.effort` de la plantilla del perfil pasa de `high` a `medium`, como ya dice `models.md`; `modes.thorough` sigue en `high`. La propuesta sube a `high` cuando la parte es larga o su aceptación es sutil, como ya hace | `templates/baton.json` | La plantilla dice `high` y `models.md`, «`medium` by default». Según la [guía], en SWE-bench Pro Opus 5.5 en `medium` sacó unos 2,5 puntos menos que en `high` con un ~70 % del coste | Sonda: perfil nuevo; las partes sin evidencia de dificultad salen en `medium` |
+| 17 | **Precios al día:** <ul><li>el peso de `models.md` tiene en cuenta el tramo de Haiku 5.5: por encima de 100K tokens cuesta 0,50/2,50 USD, cinco veces más. Factor 0,05 para partes S y 0,25 para M y L, que pasan de 100K. Y Fable entra con factor 4;</li><li>`scripts/fase4a-cost.py` usa Haiku a 0,10/0,50 USD (y su tramo) y Fable a 8/40 USD, en vez de Haiku 4.5 a 1/5 y Fable como Opus. Se vuelve a ejecutar y se corrigen la tabla 2.2 y «Fuentes y método» si cambian.</li></ul> | `prompts/models.md`, D-63, `docs/analysis/scripts/fase4a-cost.py` | Línea 8 del script; [guía], tabla de precios. La review extra con Fable de P7 está infravalorada a la mitad | Ejecutar el script otra vez; la diferencia queda escrita en «Fuentes y método» |
+
+Lo que la [guía] trae y no se propone:
+- **Reviews en `low` que repiten en `high` solo las que fallan.** La guía lo da para resultados que se comprueban solos. En este run las reviews dejaron pasar defectos de diseño (F1), y bajar su esfuerzo iría en contra de las propuestas 1–4.
+- **La herramienta advisor y el alias `opusplan`.** La propia guía dice que no mejoran con claridad al ejecutor solo.
+
 **Orden recomendado para el plan de 0.4:**
 1. Las propuestas 1–4 (calidad de lo que se entrega). Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
-3. Las 9–13.
+3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
+4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
 
 ## 7. Qué no se pudo medir
 
