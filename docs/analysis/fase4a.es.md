@@ -213,8 +213,47 @@ Lo que la [guía] trae y no se propone:
 - **Reviews en `low` que repiten en `high` solo las que fallan.** La guía lo da para resultados que se comprueban solos. En este run las reviews dejaron pasar defectos de diseño (F1), y bajar su esfuerzo iría en contra de las propuestas 1–4.
 - **La herramienta advisor y el alias `opusplan`.** La propia guía dice que no mejoran con claridad al ejecutor solo.
 
+### 6.2 Lo que añade el run `fase4a-p7b`
+
+El 2026-11-10 llegó la retro del run siguiente de MSG: `C:/MSG/.claude/runs/_baton-trazas/retro-fase4a-p7b.md`, citada abajo como **[p7b §N]**. Fue un run más pequeño:
+- 5 partes de documentación y uso real, con una PR mergeada;
+- 3 intervenciones de la persona, unos 119 USD y 0 compactaciones;
+- 45 h 37 min de run, el 72 % esperando a la persona.
+
+Confirma, con casos nuevos, las propuestas 1, 2, 7, 8 y 13:
+- **Inventario:** 0 de las 10 reviews de baton lo llevaban, y ninguna se rechazó [p7b §7 F10].
+- **Despertares:** U1 no despertó al coordinador, R lo hizo 6 h 40 min tarde y P7b, ≥ 56 min tarde [p7b §8.2].
+- **Estado:** el estado y los hallazgos quedaron sin llevar, con 0 de 33 hallazgos en `findings.jsonl` [p7b F6, F11].
+- **`cwd`:** 2 de 7 arranques se rechazaron por el `cwd` [p7b F2].
+
+Las propuestas 18–21 son nuevas.
+
+| # | Propuesta | Cambia | Evidencia | Cómo probarla |
+|---|---|---|---|---|
+| 18 | **El esfuerzo aprobado tiene que aplicarse desde el primer turno.** `start_session` arranca como mucho al esfuerzo del chat, y `set_session_effort` solo vale desde el turno siguiente, así que una parte que lo hace todo en un turno corre por debajo de su fila. Hay dos opciones: <ul><li>la propuesta pide que el coordinador corra al esfuerzo máximo de la tabla, y si no, marca la fila («correrá a medium»);</li><li>el arranque manda primero un turno corto y luego el trabajo.</li></ul> El estado guarda el esfuerzo real, leído de `get_session`, junto al aprobado (con la propuesta 8) | `skills/run` (propuesta), `skills/event` («The next part's session»), `prompts/models.md` («The ceiling») | U1, U2 y R, aprobadas en `high`, corrieron en `medium`, según el `output_config.effort` de sus transcripts [p7b §8.1, F5] | Sonda: chat en `medium` y una parte `high` de un solo turno. La tabla avisa, y el transcript de la parte muestra `high` con la opción elegida |
+| 19 | **Regla de parada de la review final (completa la propuesta 2):** <ul><li>los 🟠 bloquean y abren otra ronda;</li><li>los 🟡 se arreglan una sola vez dentro de la ronda en curso y no abren una nueva;</li><li>si tras 2 rondas siguen apareciendo 🟠, se escala a la persona;</li><li>el brief de la review parte de los ejes que el plan declara (por ejemplo, «precondiciones reproducibles desde una organización vacía»), no de una lectura libre;</li><li>las gates largas corren dentro de la sesión del correctivo, no como turnos automáticos del coordinador.</li></ul> | `skills/event/deliver.md`, `prompts/supervisor.md`, `templates/baton.json` (`roles.finalReview`) | 4 rondas frescas fuera de baton (1🟠+6🟡 → 1🟠+4🟡 → 2🟠+3🟡 → 0🟠+7🟡): ≈ 47 USD, el 39 % del run, y 12 turnos automáticos en 77 min. Los 🟠 eran precondiciones imposibles de reproducir, y los cerró una sola instrucción de reverificarlas [p7b F8, F9] | Sonda: una entrega con 🟡 que reaparecen; la segunda ronda no abre una tercera |
+| 20 | **El estado se escribe con una herramienta, no a mano:** <ul><li>un script (`scripts/state-apply`) aplica un evento al `state.json`: `rounds`, `endSha`, `verified`, `presses`, contadores y `lastSentAt`;</li><li>la hora sale siempre de `date -u`, y se rechazan las filas con una hora futura (completa la propuesta 8).</li></ul> | `skills/event` §3, `templates/state.json`, `scripts/` nuevo | La última parte quedó sin `endSha`, `rounds` ni `verified`, tras 42 `Edit` sueltos. Hubo filas de `decisions.md` con horas redondas inventadas y dos escritas en el futuro, a las 21:40 y 21:45 cuando eran las 21:34 [p7b F6, F7] | Sonda: un evento aplicado con el script deja el estado completo; una fila con hora futura se rechaza |
+| 21 | **Sin turnos vacíos:** <ul><li>el implementador espera al reviewer en primer plano y no arma `Monitor` sobre él;</li><li>ante un fin de turno sin `baton-result`, el coordinador contesta sin abrir lecturas;</li><li>en cada evento, el coordinador reconcilia con `list_sessions {linked:true}`: una sesión cuya última actividad es posterior a lo ya verificado se trata como pendiente (completa la propuesta 7).</li></ul> | `prompts/implementer.md`, `skills/event` §1 | P7b abrió 2 turnos de `Monitor` después de su `done`. El primer fin de turno despertó al coordinador sin resultado y le costó 0,78 USD. El turno del coordinador quedó bloqueado 72 min y 7 h 18 min sin detectar las partes ya terminadas [p7b F1, F3] | Sonda: una parte termina con el reviewer en segundo plano; el coordinador no relee nada y el resultado llega en un solo evento |
+
+Otras dos observaciones:
+- **El límite real de turnos automáticos no coincide con el de baton:** hubo 12 turnos automáticos en 77 min sin que la app parara [p7b §8.8]. Pasa a las preguntas abiertas junto a D-59: hace falta una sonda que mida dónde corta la app antes de mantener el aviso a 8 y la parada a 9.
+- **Fallos que se repiten de fase4a y son de la plantilla, no del run:**
+  - en el texto del hook `deliver`, `-DryRun` va **con** `-ConfirmPush` y no en su lugar;
+  - el modo auto deniega `bind_pr` en la entrega [p7b F13, F14].
+
+  La plantilla de hooks y `deliver.md` tienen que corregirlo, o llamar a `bind_pr` solo cuando el perfil lo permita.
+
 **Orden recomendado para el plan de 0.4:**
-1. Las propuestas 1–4 (calidad de lo que se entrega). Atacan la causa del correctivo, que es el 77 % del coste.
+0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
+   - el `cwd` (13, ya visto en fase4a);
+   - el esfuerzo del primer turno (18);
+   - el despertar de respaldo y la reconciliación (7 y 21);
+   - el estado con script y hora real (8 y 20);
+   - los hallazgos completos;
+   - el texto del hook `deliver`.
+
+   Son cambios pequeños, y hacen fiable la medida de todo lo demás.
+1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2. Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
 3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
 4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
