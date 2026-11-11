@@ -243,6 +243,31 @@ Otras dos observaciones:
 
   La plantilla de hooks y `deliver.md` tienen que corregirlo, o llamar a `bind_pr` solo cuando el perfil lo permita.
 
+### 6.3 Lo que añade el run `fase4a-fix`
+
+Es el correctivo de la 4a de MSG: 6 partes, una sesión por parte, mergeado el 2026-11-11. La fuente es el mensaje de su coordinador del 2026-11-11, con las filas `obs:` de `C:/MSG/.claude/runs/fase4a-fix/decisions.md`, citado como **[fix N]**. La retro llegará después, y sus cifras se añadirán aquí cuando llegue.
+
+**Confirma:**
+- **la 13:** `cwd` rechazado en un turno automático; sin `cwd` funciona porque el chat ya está en la carpeta [fix 1]. Pasa en los tres runs: hay que omitir `cwd` cuando coincide con la carpeta del coordinador;
+- **la 20:** el estado se escribió entero con un script de Python, porque con Write o Edit era demasiado largo [fix 7];
+- **la 21:** dos sesiones cerraron un turno de más después de que su `done` ya estuviera procesado, y cada uno gastó un despertar [fix 8]. `/baton:event` debe ignorar un resultado ya verificado sin contarlo;
+- **la 1:** una cabecera de inventario mal sumada con filas correctas [fix 10a]. El coordinador tiene que contar las filas él mismo, no fiarse de la cabecera.
+
+**Nuevas:**
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 22 | **Buscar la tarjeta también por título:** la app nombra la sesión de una tarjeta a partir del título, no del `name`, así que «a card still waiting» la busca también por título. Mismo caso que P5 en fase4a (`baton-fase-4-etapa-4a-p5`) | `skills/event` («a card still waiting»), `skills/status` | [fix 2]; [retro §4] |
+| 23 | **Origen de cada fila de autoridad:** `authority.alwaysAsk[]` lleva `from: profile|person`. Una fila de la persona («cada uso de Fable 5.2 pide un sí») la retiran sus propias palabras, y una del perfil no | `prompts/supervisor.md`, `templates/state.json` | [fix 3] |
+| 24 | **El modelo exacto de reviewer y Critic:** la herramienta Agent solo acepta alias (`fable` puede dar la 5.1). Cuando la fila pide una versión concreta, baton la lanza con `claude -p --model <id>`, comprueba la línea `Model:` y suma su coste desde el JSON de la ejecución a `reviewer_usage` | `prompts/implementer.md`, `agents/reviewer.md`, `prompts/models.md` | [fix 4]: un Critic en `claude-fable-5-2` por `claude -p` costó 4,61 USD en 80 turnos, fuera de las cuentas de la sesión |
+| 25 | **Aprobar la tabla de un `--dry-run`:** si la persona aprueba la tabla de un dry-run, el lanzamiento escribe el estado `proposed` aprobado en el mismo turno, en lugar de suponer que ya existía | `skills/run` (pasos 1 y 3) | [fix 5] |
+| 26 | **El modelo de la primera ronda de la review final como opción:** la hoja o la propuesta pueden fijar un modelo para la primera ronda de la review final de la PR (con la 19), y así se puede medir un experimento («¿cierra Fable en una ronda?») | `templates/baton.json` (`roles.finalReview.firstRound`), la tabla de la propuesta | [fix 6]: no hubo dónde fijarlo. La auditoría tardó 4 rondas en Opus, con 🟠 12 → 4 → 1 → 0, la misma forma que en P7b |
+| 27 | **El inventario de una auditoría por tandas:** cuando la review de una parte de cierre se apoya en una auditoría por tandas, el coordinador comprueba que la unión de las tandas cubre el diff exacto (lo hizo a mano: 137 = 137), y baton lo describe | `skills/event` (verificación), con la 1 y la 2 | [fix 10b] |
+| 28 | **El informe filtra las filas `obs:`:** la tabla de decisiones lleva las decisiones y las escaladas, las `obs:` van aparte y resumidas, y enlaza a `decisions.md` entero | `templates/report.md`, `deliver.md` | [fix 11]: unas 45 filas |
+| 29 | **La Critic por defecto en partes de backend con contrato público:** la tabla de la propuesta la pone y la persona puede quitarla | `prompts/models.md` | [fix, «lo que funcionó»]: en F4 y F5, la Critic encontró hallazgos, uno P2, tras dos reviews OK |
+
+**No es un fallo de baton:** las respuestas a sesiones ajenas al run cuentan para la cuota de mensajes [fix 9]. La app cuenta todos los envíos de un chat por cada palabra de la persona, y baton hace bien en contarlos. Lo que sí falta es lo de la propuesta 6: no atender sesiones ajenas en medio de una cadena de eventos.
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
