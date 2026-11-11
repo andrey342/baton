@@ -294,6 +294,19 @@ También confirma, con más peso, las propuestas 13, 20 y 21 y el fallo de `bind
 
 **No es un fallo de baton:** las respuestas a sesiones ajenas al run cuentan para la cuota de mensajes [fix 9]. La app cuenta todos los envíos de un chat por cada palabra de la persona, y baton hace bien en contarlos. Lo que sí falta es lo de la propuesta 6: no atender sesiones ajenas en medio de una cadena de eventos.
 
+### 6.4 Lo que añade el run `fase4a-limites`
+
+Fuente: el mensaje de su coordinador del 2026-11-11 y la fila de las 22:11:41Z de `C:/MSG/.claude/runs/fase4a-limites/decisions.md`. El run seguía en curso cuando se escribió esto.
+
+**Qué pasó:** la sesión de la parte L2 lanzó su script de tests en segundo plano (`run_in_background`). El script falló con exit 1 y el aviso de esa tarea cerró el turno sin `baton-result` (19:25:01Z). El coordinador no recibió ningún despertar y no se enteró hasta que la persona preguntó «¿cómo va?» a las 22:11, unas 2 h 45 min después. Se reanudó con «baton · continue part L2…».
+
+**Por qué importa:** la regla 9 de `prompts/implementer.md` ya dice que el turno espera en primer plano a lo que lanza en segundo plano, pero permite lanzarlo así, y la sesión no esperó. Es el mismo patrón que el `Monitor` de P7b (21) y que las paradas silenciosas de fase4a (7), y el más caro de los tres.
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 34 | **Las gates y los tests de una parte no corren en segundo plano:** <ul><li>la regla 9 de `implementer.md` prohíbe `run_in_background` para los comandos de la parte, que corren en primer plano con su timeout;</li><li>uno más largo se trocea, o se pide al coordinador;</li><li>si una tarea en segundo plano termina, el turno sigue hasta el `baton-result`.</li></ul> | `prompts/implementer.md` (regla 9) | L2: 2 h 45 min parada sin resultado |
+| 35 | **Vigilante de partes paradas:** <ul><li>en cada evento, en cada palabra de la persona y en `/baton:status`, una parte `working` cuya sesión está en reposo sin `result-<parte>.md` posterior a su último envío se dice como «parada sin resultado», y se le manda «continúa» una vez;</li><li>como el coordinador no puede sondear, se apoya en el despertar de respaldo de la 7 y en la reconciliación de la 21;</li><li>una rutina programada que haga esa comprobación cada N minutos queda como opción del perfil, con el sí de la persona.</li></ul> | `skills/event`, `skills/status`, con la 7 y la 21 | L2, y las paradas de fase4a (03-11 y 04-11) |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
