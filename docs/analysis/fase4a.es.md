@@ -19,6 +19,7 @@ Análisis del primer uso real de baton 0.3. Lo escribe el chat de baton el 2026-
   - Fable valorado como Opus;
   - cada mensaje cuenta una sola vez, deduplicado por `message.id` entre todos los transcripts.
   
+  **Corrección del 2026-11-11:** la retro de `fase4a-fix` comprobó contra los `cost-state` de la app que la lectura de caché cuesta 0,05×, no 0,1×. Con 0,05× el run cuesta **2.002 USD**, en lugar de 3.062. El reparto apenas cambia: la fase A es el 20,6 % y lo de después de la primera entrega, el 79,4 %. Las tablas de abajo siguen con la fórmula antigua (0,1×). Para recalcularlas, cambia el factor en la línea 22 de `scripts/fase4a-cost.py`.
   La persona trabaja con suscripción (el implementador se paró por el límite semanal [dec:97]), así que los USD son **equivalente a precio de API**, no lo que se pagó. Con esta fórmula, la retro reproducía el coste que registró la app con un error del 1 %.
 - **Tamaño de las PR:** `git diff --shortstat <baseSha> <head>` en cada repo, solo lectura.
 - **Fases del run** usadas en las tablas:
@@ -29,7 +30,7 @@ Análisis del primer uso real de baton 0.3. Lo escribe el chat de baton el 2026-
 ## 1. Resumen
 
 - **El plan se entregó en 81 h y se mergeó a los 11 días.** Las 9 partes (P0–P7 y CA) se entregaron a las 80 h 58 min, con 3 PR y el snapshot verificado [state]. El dueño revisó las PR y encontró 9 defectos de diseño y estructura que ninguna de las 50 reviews había marcado [dec:77]. De ahí salió un correctivo de 7 días y 18 h, con un implementador nuevo, y el merge llegó el 2026-11-07 a las 21:19 [dec:144].
-- **El 79 % del coste fue después de la primera entrega.** Del total de ~3.062 USD, 648 USD corresponden a la fase A, 71 USD a la B y 2.344 USD a la C (tabla 2.2). Mientras baton daba el plan por terminado, el trabajo de calidad apenas había empezado.
+- **El 79 % del coste fue después de la primera entrega.** Del total de ~3.062 USD, 648 USD corresponden a la fase A, 71 USD a la B y 2.344 USD a la C (tabla 2.2). Con la tarifa de caché real de la app el total es ~2.002 USD, con el mismo reparto. Mientras baton daba el plan por terminado, el trabajo de calidad apenas había empezado.
 - **Lo que funcionó de 0.3:**
   - la sesión por parte;
   - la verificación del coordinador en los tres repos;
@@ -265,6 +266,31 @@ Es el correctivo de la 4a de MSG: 6 partes, una sesión por parte, mergeado el 2
 | 27 | **El inventario de una auditoría por tandas:** cuando la review de una parte de cierre se apoya en una auditoría por tandas, el coordinador comprueba que la unión de las tandas cubre el diff exacto (lo hizo a mano: 137 = 137), y baton lo describe | `skills/event` (verificación), con la 1 y la 2 | [fix 10b] |
 | 28 | **El informe filtra las filas `obs:`:** la tabla de decisiones lleva las decisiones y las escaladas, las `obs:` van aparte y resumidas, y enlaza a `decisions.md` entero | `templates/report.md`, `deliver.md` | [fix 11]: unas 45 filas |
 | 29 | **La Critic por defecto en partes de backend con contrato público:** la tabla de la propuesta la pone y la persona puede quitarla | `prompts/models.md` | [fix, «lo que funcionó»]: en F4 y F5, la Critic encontró hallazgos, uno P2, tras dos reviews OK |
+
+**La retro** (`C:/MSG/.claude/runs/_baton-trazas/retro-fase4a-fix.md`, archivo en `fase4a-fix-archivo/`), con la lectura de caché a 0,05×:
+
+| Cifra | Valor |
+|---|---|
+| Partes | 6 en serie, con 17 rondas de reviewer y 6 de Critic, 1 replan (F4) y ningún reintento |
+| Coste | 327,33 USD: coordinador 7,9 %, implementadores 58,8 %, reviewers 7,5 %, Critic 4,1 % y auditoría de la PR (F6) 21,2 % |
+| Persona | 19 entradas: 10 del plan, 3 evitables y 2 en parte |
+| A mano | ≥ 9 pasos del coordinador y entre 45 y 55 escrituras del estado |
+| Cadena | aguantó 4 compactaciones y 9 h sin palabra de la persona |
+| Despertares | duplicados o retenidos en F2, F3 y F6; el de F2 llegó 85 min tarde |
+| Arranques | 2 de 8 rechazados por `cwd`; la tarjeta de F2 esperó 17 min |
+
+El 56 % del coste del coordinador es reescritura de caché tras más de 1 h sin actividad.
+
+La retro añade cuatro cosas a lo de arriba:
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 30 | **Los P3 de documentación no gastan una ronda de review:** se corrigen dentro de la ronda siguiente o al entregar, como los 🟡 de la 19 | `prompts/implementer.md` (bucle de review) | 4 de los 8 NO del run fueron solo P3 de docs, y uno de ellos forzó el replan de F4. Mismo patrón que P7 en fase4a (informe al HEAD) |
+| 31 | **Revisar la hoja antes de lanzar:** la propuesta señala criterios fuera del alcance y recoge las respuestas permanentes de la persona como delegaciones, antes de pedir el sí | `skills/run` (propuesta), con la 10 | retro de fase4a-fix |
+| 32 | **El esfuerzo de un subagente lanzado por `claude -p`:** pasar `--effort` con la fila (con la 24) | `prompts/implementer.md` | La Critic en Fable por `claude -p` corrió en `medium`, aprobada en `high` |
+| 33 | **El cierre deja la base al día:** tras el merge de la persona, `git pull --ff-only` en cada base al volver a ella, porque se queda atrasada | `skills/run/hooks.md` («The close») | retro de fase4a-fix |
+
+También confirma, con más peso, las propuestas 13, 20 y 21 y el fallo de `bind_pr`, denegado ya en tres runs. La 13 gana un matiz: reintentar sin `cwd` antes de recurrir a la tarjeta.
 
 **No es un fallo de baton:** las respuestas a sesiones ajenas al run cuentan para la cuota de mensajes [fix 9]. La app cuenta todos los envíos de un chat por cada palabra de la persona, y baton hace bien en contarlos. Lo que sí falta es lo de la propuesta 6: no atender sesiones ajenas en medio de una cadena de eventos.
 
