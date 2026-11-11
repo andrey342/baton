@@ -20,7 +20,7 @@ Este resumen es para el post de redes. Lleva solo cifras del proceso y fallos de
 | Turnos automáticos del coordinador | unos 155: fines de turno de las sesiones y avisos de subagentes |
 | Revisiones por parte antes de la primera entrega | 31, 13 de ellas rechazadas, más 15 críticas independientes |
 | Revisiones y auditorías frescas después | 93 subagentes |
-| Coste estimado (equivalente de API; se pagó con suscripción) | ~3.060 USD |
+| Coste estimado (equivalente de API; se pagó con suscripción) | ~2.000 USD |
 | Coste antes / después de la primera entrega | 21 % / 79 % |
 | Peso del coordinador en el coste | 4,5 % |
 | Peso de la revisión, en todas sus formas, en el coste | 33 % |
