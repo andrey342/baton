@@ -309,6 +309,35 @@ Fuente: el mensaje de su coordinador del 2026-11-11 y la fila de las 22:11:41Z d
 | 34 | *Retirada:* prohibir `run_in_background` en la parte. La causa real fue una caída de Claude Code por memoria | — | — |
 | 35 | **Vigilante de partes paradas o muertas:** <ul><li>en cada evento, en cada palabra de la persona y en `/baton:status`, una parte `working` cuya sesión está en reposo o no corre (`get_session`: `isRunning`) sin `result-<parte>.md` posterior a su último envío se dice como «parada sin resultado», y se le manda «continúa» una vez;</li><li>como el coordinador no puede sondear, se apoya en el despertar de respaldo de la 7 y en la reconciliación de la 21;</li><li>una rutina programada que haga esa comprobación cada N minutos queda como opción del perfil, con el sí de la persona.</li></ul> | `skills/event`, `skills/status`, con la 7 y la 21 | L2, y las paradas de fase4a (03-11 y 04-11) |
 
+**La retro** (`C:/MSG/.claude/runs/_baton-trazas/retro-fase4a-limites.md`, propuestas en su §8, citada como **[lim N]**) llegó el 2026-11-14. El run tuvo 9 partes, L1–L9, y quedó entregado (be#27 y MSG#31), con el merge pendiente de la persona.
+
+**Cifras, con la tarifa de la app:**
+- 515,90 USD. Implementadores 50 %, auditoría de la PR 29 % (149,62 USD), reviewers 9 %, Critic 6,5 % y coordinador 5 % (25,63 USD).
+- 57 h 05 min de reloj, de ellas 22 h 39 min (40 %) perdidas en esperas de la app y en sesiones muertas:
+  - 13 h 30 min en 3 arranques que esperaban a la persona;
+  - L2 parada 2 h 20 min y L4, 3 h 04 min, sin aviso;
+  - L9 parada 3 h 45 min por el límite de uso de la cuenta.
+- Hubo 108 `Edit` sobre `state.json`.
+
+**El experimento con Fable 5.2** (pendiente desde la 26) dio estos resultados:
+- **No cierra la auditoría de la PR en una ronda.** Los 🟠 fueron 11 → 4 → 1, la misma curva que Opus en fase4a-fix.
+- **Gasta más:** cuesta lo mismo por token y gasta unas 1,6 veces más tokens por tanda.
+- **Como Critic r1 encontró 2 P2 reales** en dos partes, que dos rondas de Opus no habían visto, a 5,4–7,8 USD por ronda frente a 1,3–2,8 de Opus. Con n = 2 no se puede separar el efecto del modelo del de la parte.
+- **El canal `claude -p` pierde resultados:** 3 de 14 lanzamientos devolvieron un JSON vacío tras hacer el trabajo, y el estado no contó 19,46 USD (98,66 USD reales frente a 79,20 registrados).
+
+**Por qué cambian la 15 y la 26:** auditoría de la PR y Critic en Opus high por defecto. Fable, solo como Critic r1 de la parte más concurrente o de máquina de estados, con la r2 en Opus. Y nada de `claude -p` hasta que no pierda resultados.
+
+**Confirma:** la 6 (Remote Control sin arranque ni tarjeta: una delegación nocturna no se puede cumplir), la 35 (vigilante), la 20, la 19 y la 24 [lim §8].
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 36 | **El límite de uso de la cuenta se trata como una pausa con hora de reanudación:** la sesión que lo encuentra lo dice en su resultado. El coordinador deja la parte como `paused` con `resumeAt`, con un despertar programado al reset si la persona lo autorizó, o un aviso si no | `skills/event`, `skills/status`, `prompts/implementer.md` | [lim N3]: L9 parada 3 h 45 min. En fase4a, el implementador se paró igual el 02-11 [dec:97] |
+| 37 | **Comprobar las reglas de permisos antes de lanzar lo que se delega:** si la persona delega una acción destructiva (un reset de datos), la propuesta comprueba que el modo auto la permitirá, o avisa de que el clasificador la va a denegar y hará falta su sí en la sesión | `skills/run` (propuesta), `prompts/supervisor.md` («Delegation») | [lim N4]: el clasificador denegó el reset delegado de L6 |
+| 38 | **Un canal sin pérdidas para un modelo exacto:** cuando el reviewer o la Critic van por `claude -p` (24), la salida se escribe en un fichero desde el propio comando, el JSON vacío se trata como fallo y se repite una vez, y los USD del JSON van al resultado de la parte | `prompts/implementer.md`, con la 24 | [lim N7]: 3 de 14 lanzamientos perdidos, 19,46 USD sin contar |
+| 39 | **Los supuestos de la hoja, con evidencia:** la hoja declara sus supuestos («la API ya devuelve X»), y el Critic de la propuesta, o la revisión de la hoja de la 31, exige evidencia de cada uno antes de lanzar | `skills/run` (propuesta), con la 31 | [lim N13] |
+
+Por último, un subagente analista no puede escribir los ficheros de un informe, por la política de la app. El brief de una retro tiene que pedirle el texto de vuelta y que lo guarde el chat que lo lanzó (con la 12).
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
