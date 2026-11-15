@@ -336,6 +336,15 @@ Fuente: el mensaje de su coordinador del 2026-11-11 y la fila de las 22:11:41Z d
 | 38 | **Un canal sin pérdidas para un modelo exacto:** cuando el reviewer o la Critic van por `claude -p` (24), la salida se escribe en un fichero desde el propio comando, el JSON vacío se trata como fallo y se repite una vez, y los USD del JSON van al resultado de la parte | `prompts/implementer.md`, con la 24 | [lim N7]: 3 de 14 lanzamientos perdidos, 19,46 USD sin contar |
 | 39 | **Los supuestos de la hoja, con evidencia:** la hoja declara sus supuestos («la API ya devuelve X»), y el Critic de la propuesta, o la revisión de la hoja de la 31, exige evidencia de cada uno antes de lanzar | `skills/run` (propuesta), con la 31 | [lim N13] |
 
+**La corrección de la review de be#27 (partes L10–L12, entregada el 2026-11-15 sin merge)** trae tres cosas más. La fuente es el mensaje del coordinador del 2026-11-15, con las filas `obs:` de `C:/MSG/.claude/runs/fase4a-limites/decisions.md`.
+- **Iterar sobre un run entregado y sin mergear no tiene camino.** Hubo que reabrirlo a mano, con una hoja addendum de partes nuevas y el `status` devuelto a `running`. Esto refuerza la 5. La forma concreta que propone es `/baton:run --addendum <hoja>` sobre un run `delivered`: añade las partes al mismo run, a la misma rama y a las mismas PR.
+- **Arrancar sesiones por adelantado funciona.** La app rechaza `start_session` en los turnos automáticos, así que el coordinador abrió la sesión de la parte siguiente en un turno de la persona, la dejó esperando y la despertó después con un mensaje. Es la propuesta 40, abajo.
+- **El cierre dirigido funcionó con Opus.** Opus high cerró la corrección con una r2 limitada a los 6 archivos que tenían 🟠 (2 → 0). Confirma Opus high por defecto en las auditorías, y que la segunda ronda de la 19 revise solo los archivos con 🟠 abiertos.
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 40 | **Sesiones abiertas por adelantado:** en el turno de la persona que aprueba la tabla, el lanzamiento abre la sesión de cada parte (o de las siguientes N) con su modelo y esfuerzo, y les da un brief que dice «espera tu mensaje». Después, cada parte arranca con un `SendMessage`, que funciona en un turno automático. Esto resuelve el D-62 sin tarjetas ni Remote Control. De paso, el esfuerzo se aplica desde el primer turno de trabajo (la 18), porque el turno de espera es el primero. Hay que medir tres cosas: el coste de una sesión en espera, si caduca, y si un mensaje a una sesión en espera cuenta para la cuota de la 59 | `skills/run` (lanzamiento), `skills/event` («The next part's session»), con la 6 y la 18 | Funcionó en L10–L12. En los cuatro runs anteriores, los arranques rechazados costaron horas: P5 1 h 17 min, F2 17 min, 13 h 30 min en limites |
+
 Por último, un subagente analista no puede escribir los ficheros de un informe, por la política de la app. El brief de una retro tiene que pedirle el texto de vuelta y que lo guarde el chat que lo lanzó (con la 12).
 
 **Orden recomendado para el plan de 0.4:**
