@@ -347,6 +347,19 @@ Fuente: el mensaje de su coordinador del 2026-11-11 y la fila de las 22:11:41Z d
 
 Por último, un subagente analista no puede escribir los ficheros de un informe, por la política de la app. El brief de una retro tiene que pedirle el texto de vuelta y que lo guarde el chat que lo lanzó (con la 12).
 
+### 6.5 Lo que añade el run `fase4b`
+
+La fuente es el mensaje de su coordinador del 2026-11-17, con las filas `obs:` de `C:/MSG/.claude/runs/fase4b/decisions.md`. El run estaba en curso cuando se escribió esto.
+
+- **La regla de arranque de la app no sigue la cuenta de despertares.** El mismo `start_session` con `user_asked` pasó para P9a (5 despertares después de la última palabra de la persona) y para P9b, y se rechazó para CAb, con 4 despertares y el texto «Start sessions only on the user's own words…». La tarjeta funcionó como respaldo y la persona la pulsó. Que se pueda arrancar no es predecible desde baton, y eso pesa a favor de la 40 (sesiones abiertas por adelantado) con la tarjeta como respaldo.
+- **Los despertares se gastan esperando al revisor.** P8, P9a y P9b terminan turnos para esperar a su revisor, que corre en segundo plano, aunque el prompt dice «espera en primer plano». P9a llegó a 10 despertares, y el run se quedó esperando una palabra de la persona. Pasó lo mismo con el `Monitor` de P7b (21), y ya en la parte 1 de 0.3 se vio que la herramienta Agent no deja elegir el primer plano.
+- **`closedAt` duplicado en el estado.** El cierre de `fase4a-limites` escribió `closedAt` sin quitar el `"closedAt": null` de la plantilla, y un parser leía null. Hubo que arreglarlo a mano.
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 41 | **El revisor no puede terminar el turno de la parte.** Hay tres opciones, por orden de preferencia: <ol><li>lanzar reviewer y Critic de forma que el turno espere de verdad: un comando en primer plano (`claude -p` con el canal sin pérdidas de la 38) o la herramienta Agent si un día admite el primer plano;</li><li>si no se puede, que la parte acabe el turno con un `baton-result` `status: reviewing`, que el coordinador trata sin releer nada (21) y que no cuenta como evento de la parte;</li><li>como mínimo, que `implementer.md` prohíba terminar un turno con un revisor sin veredicto.</li></ol> La app cuenta igual esos despertares, así que solo la opción 1 los ahorra | `prompts/implementer.md`, `skills/event`, con la 21 y la 38 | P9a llegó a 10 despertares y el run esperó a la persona. También P8, P9b y el `Monitor` de P7b |
+| 42 | **El estado se valida después de cada escritura:** JSON válido, sin claves duplicadas y con los campos que la plantilla exige según el `status`. Va dentro del `state-apply` de la 20, y también en el cierre (`hooks.md`) | `skills/event`, `skills/run/hooks.md` («The close»), con la 20 | `closedAt` duplicado tras el cierre de `fase4a-limites` |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
