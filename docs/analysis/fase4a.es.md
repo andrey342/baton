@@ -349,7 +349,11 @@ Por último, un subagente analista no puede escribir los ficheros de un informe,
 
 ### 6.5 Lo que añade el run `fase4b`
 
-La fuente es el mensaje de su coordinador del 2026-11-17, con las filas `obs:` de `C:/MSG/.claude/runs/fase4b/decisions.md`. El run estaba en curso cuando se escribió esto.
+Las fuentes son:
+- el mensaje de su coordinador del 2026-11-17, con las filas `obs:` de `C:/MSG/.claude/runs/fase4b/decisions.md`;
+- el resumen del cierre (2026-11-19, 15:16Z) y la retro `C:/MSG/.claude/runs/_baton-trazas/retro-fase4b.md`, citada como [4b §n].
+
+La retro no midió el coste: no leyó los transcripts.
 
 - **La regla de arranque de la app no sigue la cuenta de despertares.** El mismo `start_session` con `user_asked` pasó para P9a (5 despertares después de la última palabra de la persona) y para P9b, y se rechazó para CAb, con 4 despertares y el texto «Start sessions only on the user's own words…». La tarjeta funcionó como respaldo y la persona la pulsó. Que se pueda arrancar no es predecible desde baton, y eso pesa a favor de la 40 (sesiones abiertas por adelantado) con la tarjeta como respaldo.
 - **Los despertares se gastan esperando al revisor.** P8, P9a y P9b terminan turnos para esperar a su revisor, que corre en segundo plano, aunque el prompt dice «espera en primer plano». P9a llegó a 10 despertares, y el run se quedó esperando una palabra de la persona. Pasó lo mismo con el `Monitor` de P7b (21), y ya en la parte 1 de 0.3 se vio que la herramienta Agent no deja elegir el primer plano.
@@ -360,17 +364,54 @@ La fuente es el mensaje de su coordinador del 2026-11-17, con las filas `obs:` d
 | 41 | **El revisor no puede terminar el turno de la parte.** Hay tres opciones, por orden de preferencia: <ol><li>lanzar reviewer y Critic de forma que el turno espere de verdad: un comando en primer plano (`claude -p` con el canal sin pérdidas de la 38) o la herramienta Agent si un día admite el primer plano;</li><li>si no se puede, que la parte acabe el turno con un `baton-result` `status: reviewing`, que el coordinador trata sin releer nada (21) y que no cuenta como evento de la parte;</li><li>como mínimo, que `implementer.md` prohíba terminar un turno con un revisor sin veredicto.</li></ol> La app cuenta igual esos despertares, así que solo la opción 1 los ahorra | `prompts/implementer.md`, `skills/event`, con la 21 y la 38 | P9a llegó a 10 despertares y el run esperó a la persona. También P8, P9b y el `Monitor` de P7b |
 | 42 | **El estado se valida después de cada escritura:** JSON válido, sin claves duplicadas y con los campos que la plantilla exige según el `status`. Va dentro del `state-apply` de la 20, y también en el cierre (`hooks.md`) | `skills/event`, `skills/run/hooks.md` («The close»), con la 20 | `closedAt` duplicado tras el cierre de `fase4a-limites` |
 
+**Lo que añade el cierre.** El run se cerró el 2026-11-19:
+- 6 partes y una pausa A→B, en 93 h 39 min de la aprobación a las PR;
+- 23 reviews, 9 Critic, 3 replanes y 1 reintento;
+- 34 hallazgos, 16 de ellos de documentación;
+- entrega `pr` con ask-once en 4 min 22 s (be#28, fe#22 y MSG#32), mergeada por la persona, con `onClose` en exit 0.
+
+Lo nuevo:
+- **Un FAIL del Critic después de la última review deja a la parte sin ronda.** Le pasó a P9a y dos veces a P11, que acabó con 7 reviews y 3 Critic sobre un tope de 3. Su replan decía que «lo único que falta es el procedimiento». Además, los 4 Critic de primera ronda dieron FAIL, y 3 traían un P2 que la review en OK no había visto. Esto confirma la 29: el Critic encuentra lo que la review no ve [4b §2, §9 P1].
+- **La persona encontró en las PR tres defectos que no habían visto 24 reviews ni 9 Critic:**
+  - un servicio de dominio que lee dos agregados, dentro de uno de ellos;
+  - `RuleFor` en dos validators de query: el detector solo miraba los de command, y el reviewer se fió del detector;
+  - el email real de la persona, versionado en el banco de pruebas.
+
+  Hizo falta un correctivo de 2 h. Es la F1 otra vez, ahora a escala de regla: el detector cubre menos de lo que dice la regla, y la review no mira más allá [4b §10.3].
+- **El email quedó en la historia de `develop`.** MSG#32 se mergeó con un merge commit. Quitarlo ahora exige reescribir la historia, que es de la persona [4b §9 P7].
+- **La deriva de documentación se corregía en un sitio por ronda.** La ronda siguiente encontraba la misma afirmación en otro archivo, y P11 agotó las rondas dos veces así [4b §10.1].
+- **El vigilante de la 35 hizo falta.** P11 estuvo parada unas 3–4 h, esperando a sus propios subagentes, hasta que la persona preguntó «¿cómo va?». El coordinador la despertó a mano y puso crons anti-parada de 30 minutos. Ni el intervalo ni la segunda parada constan en los archivos [4b §8 fila 18].
+- **Fallos ya conocidos que se repiten:**
+  - el hook `deliver` sigue diciendo «-DryRun en lugar de -ConfirmPush», y `task-pr.ps1` lo rechaza;
+  - `state.presses` deja fuera 7 palabras de la persona, que solo están en `decisions.md`;
+  - `lastSentAt` quedó viejo, y hay horas redondeadas o escritas a mano;
+  - `findings.jsonl` mezcla dos formatos JSON, y un filtro `"plan":"fase4b"` devuelve 11 de 34 filas (la 8 y la 20);
+  - `branch.createdBy` arrastró el valor del run anterior por cuarta vez, y el formato `repoRunId` del perfil no coincide con el nombre de la hoja [4b §8 filas 2, 4, 22–25].
+- **Después del pull, los gitlinks de la raíz en `develop` apuntan a las cabezas de las ramas y no a los merges.** El cierre no tiene un paso para subirlos. Esto amplía la 33.
+- **P11 necesitó ocho respuestas de la persona sobre credenciales, organizaciones y cuentas, repartidas en dos días.** Refuerza la 10: listar en la propuesta los pasos de la persona y las acciones que tiran sus sesiones [4b §5, §9 P9].
+- **La regla de parada de la auditoría por archivo se decidió dos veces con la persona.** Refuerza la 19: dejarla escrita en la hoja [4b §9 P10].
+- **Un cliente MCP externo (Cursor) se dio `confirmed:true` a sí mismo y bajó de Owner a Editor a la cuenta real de la persona.** Es un fallo del producto, de MSG. Para baton, enseña que una parte que prueba clientes reales contra cuentas reales necesita guardas en su hoja: qué cuentas puede tocar y con qué foto de control se restaura. Va con la 39 [4b §10.5].
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 43 | **Una ronda reservada para el Critic:** un FAIL del Critic después de la última review da una ronda más de review y otra de Critic, sin replan. Se cuentan aparte `reviewRounds` y `criticRounds`. Es un bug de 0.3 | `skills/event`, `templates/state.json`, `agents/reviewer.md` | P9a y P11 en `blocked` con la review en OK; P11 con 7 reviews y 3 Critic sobre un tope de 3 [4b §9 P1] |
+| 44 | **La regla entera, no lo que mira su detector:** <ul><li>para cada regla del repo con detector, el reviewer comprueba todo el glob de la regla, no solo los archivos que el detector escanea, ni solo el diff;</li><li>una pasada de datos personales en lo versionado: emails ajenos al dominio de pruebas, nombres y tokens.</li></ul> | `agents/reviewer.md`, con la 1 | Los tres defectos de la review de la persona [4b §9 P6] |
+| 45 | **Sin datos personales en la historia:** <ul><li>antes del push, la entrega busca en el diff emails fuera de los dominios de prueba del perfil;</li><li>si una corrección quitó una fuga, al pedir el merge se recomienda squash y se dice por qué.</li></ul> | `skills/event/deliver.md`, `templates/baton.json` (`testDomains`) | El email quedó en `develop` por el merge commit de MSG#32 [4b §9 P7] |
+| 46 | **Un hallazgo de documentación se barre entero:** antes de la siguiente ronda, el implementador busca la misma afirmación en toda la documentación compartida y en los informes, y la corrige en todos los sitios | `prompts/implementer.md`, con «Repeated findings» de `report.md` | 16 de 34 hallazgos eran de documentación, y P11 agotó rondas dos veces por la misma afirmación en sitios distintos [4b §9 P8] |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
    - el esfuerzo del primer turno (18);
    - el despertar de respaldo y la reconciliación (7 y 21);
    - el estado con script y hora real (8 y 20);
-   - los hallazgos completos;
-   - el texto del hook `deliver`.
+   - los hallazgos completos, en un solo formato;
+   - el texto del hook `deliver`;
+   - la ronda reservada para el Critic (43);
+   - el estado validado tras cada escritura (42).
 
    Son cambios pequeños, y hacen fiable la medida de todo lo demás.
-1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2. Atacan la causa del correctivo, que es el 77 % del coste.
+1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44 y la 46 con la 1, y la 45 con la 2. Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
 3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
 4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
