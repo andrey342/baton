@@ -399,6 +399,51 @@ Lo nuevo:
 | 45 | **Sin datos personales en la historia:** <ul><li>antes del push, la entrega busca en el diff emails fuera de los dominios de prueba del perfil;</li><li>si una corrección quitó una fuga, al pedir el merge se recomienda squash y se dice por qué.</li></ul> | `skills/event/deliver.md`, `templates/baton.json` (`testDomains`) | El email quedó en `develop` por el merge commit de MSG#32 [4b §9 P7] |
 | 46 | **Un hallazgo de documentación se barre entero:** antes de la siguiente ronda, el implementador busca la misma afirmación en toda la documentación compartida y en los informes, y la corrige en todos los sitios | `prompts/implementer.md`, con «Repeated findings» de `report.md` | 16 de 34 hallazgos eran de documentación, y P11 agotó rondas dos veces por la misma afirmación en sitios distintos [4b §9 P8] |
 
+### 6.6 Lo que añade el run `mcp-seguridad`
+
+La fuente es la retro `C:/MSG/.claude/runs/_baton-trazas/retro-mcp-seguridad.md`, citada como [seg §n], con las filas `obs:` de `C:/MSG/.claude/runs/mcp-seguridad/decisions.md`. La retro no leyó los transcripts, así que no hay coste en USD. Lo que viene solo del coordinador va marcado como tal.
+
+Es el run más limpio de los medidos con 0.3:
+- 3 partes y 21 h 02 min de la aprobación a las PR (be#29 y MSG#33, mergeadas por la persona);
+- 7 reviews y 3 Critic, con los 3 Critic en PASS a la primera;
+- 0 replanes, 0 reintentos, 0 tarjetas y ninguna parte en `blocked`;
+- 8 intervenciones de la persona, solo una evitable en parte;
+- unos 1,85 M de tokens de revisores, frente a unos 5 M en las cinco primeras partes de `fase4b` [seg §1, §3, §11].
+
+**Lo que confirma:**
+- **La 43 funciona.** La hoja escribió como regla que el Critic va como muy tarde tras la review r2. En S3 fue r1 NO, r2 NO, Critic PASS y r3 OK, justo en el tope de 3 rondas y sin replan [seg §10.1]. Hoy depende de que cada hoja lo escriba: la 43 lo pasa a baton.
+- **Las guardas de la prueba con clientes reales funcionan.** Cursor volvió a saltarse al humano, y el daño fue 0 gracias a los sujetos de prueba y la foto de control. Va con la 39 [seg §8 fila 7].
+- **El preflight del coordinador sirve.** Detectó un 500 del dev-login antes de lanzar [seg §8 fila 2].
+- **Fallos conocidos que siguen sin arreglar:**
+  - el texto del hook `deliver`, por tercer run seguido;
+  - `branch.createdBy` editado a mano, por quinta o sexta vez;
+  - el brief con rangos de líneas en vez de la hoja copiada;
+  - en `state.json`, `branchSha` igual a `baseSha` aunque la rama tenía commits, `gates: []`, `install: ""` y hashes cortos mezclados con largos;
+  - en `findings.jsonl`, el `at` lleva la hora del `done` y no la de cada ronda;
+  - en `report.md`, «Repeated findings» cuenta todo `findings.jsonl` y no solo este run (la 8 y la 20) [seg §8 filas 1, 4, 15–17].
+
+**Lo nuevo:**
+- **El chat del coordinador se cayó durante el lanzamiento** (0xC0000409, según el coordinador). El estado quedó en `proposed` sin `approvedAt`, y la aprobación solo constaba en `decisions.md`. La persona dijo «reintenta» y el lanzamiento siguió desde los archivos [seg §8 fila 5].
+- **`start_session` con `cwd` igual a la carpeta del proyecto se rechaza en un turno automático,** con «This call names another place». El mismo arranque sin `cwd` funcionó. No consta si esto explica también el rechazo de CAb en `fase4b`. Amplía la 13: no basta con la barra invertida, hay que omitir `cwd` cuando coincide con la carpeta del coordinador [seg §4, §9 P3].
+- **El cierre sobrescribió el `result-S3.md` del `done`.** Se perdieron las desviaciones, las notas y el `reviewer_usage` de S3, que solo quedan en `report.md` [seg §8 fila 13].
+- **La auditoría por archivo cuadró 30 de 31 archivos.** El reparto de tandas se hizo a mano. Lo cazó la review r1 (el único P2 del run), y no el coordinador [seg §8 fila 14].
+- **La mayor espera fue el host, no baton:**
+  - S3 esperó 4 h 08 min sin memoria, con 448 MB libres de 16 GB, 30 procesos `claude` y 51 `node`;
+  - S2 ya había visto el error 1455 del archivo de paginación.
+
+  No consta cuántos de esos procesos eran de este run. baton no mira los recursos de la máquina antes de una parte pesada [seg §4, §10.3].
+- **Una desviación aceptada tres veces sigue siendo una desviación.** `env -u PSModulePath` se aceptó a mano en S1, S2 y S3. baton no propone pasarla al perfil [seg §10.4].
+- **El clasificador del modo auto denegó `bind_pr`, y `archive_session` tuvo que repetirse,** porque un hook cambia su input después de que el modo auto lo revise. Las dos cosas son solo según el coordinador: no constan en los archivos.
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 47 | **La aprobación se escribe primero:** en el lanzamiento, `state.json` recibe `status` y `approvedAt` antes que `settled.md`, el brief o cualquier otra escritura. Si al retomar hay una fila de aprobación en `decisions.md` y el estado sigue en `proposed`, `run` continúa desde ahí sin volver a preguntar. Es un bug de 0.3 | `skills/run`, `templates/state.json` | La caída en el lanzamiento [seg §9 P1] |
+| 48 | **Sin `cwd` cuando es la carpeta del coordinador:** `start_session` omite `cwd` si coincide con la carpeta de este chat, y en otro caso pasa la ruta nativa de Windows (la 13). Es un bug de 0.3 | `skills/event` («The next part's session»), `skills/run`, con la 13 | El rechazo de S2 [seg §9 P3] |
+| 49 | **Un resultado por turno:** el `done` de una parte queda en `result-<parte>.md`, y el cierre o la entrega escriben `result-<parte>-close.md`. Ningún turno sobrescribe un resultado anterior | `prompts/implementer.md`, `skills/event` | El `done` de S3 perdido [seg §9 P5] |
+| 50 | **Las tandas de auditoría salen de un script:** el reparto se genera desde `git diff --name-only <base>...HEAD` de toda la PR, y el cuadre falla si la suma de las tandas no es igual al número de archivos del diff | `prompts/implementer.md`, `scripts/` nuevo, con la 1 y la 19 | 30 de 31, cazado solo por la review [seg §9 P6] |
+| 51 | **Las desviaciones repetidas pasan al perfil:** cuando la misma desviación se acepta en dos partes de un run, el coordinador la escribe en `report.md` como cambio de perfil propuesto (una nota, un gate o un `beforePart`), y la persona decide si lo aplica | `skills/event`, `templates/report.md` | `PSModulePath` aceptado tres veces a mano [seg §10.4] |
+| 52 | **Comprobar la máquina antes de una parte pesada:** el perfil puede declarar un `beforePart` que lee la memoria libre y los procesos para las partes con E2E o Docker. Si no llega al umbral que fija la persona, baton pregunta antes de empezar, y no a mitad de la parte ni de madrugada. El umbral es de la persona: el «≥ 6 GB» de S3 no consta de dónde sale, y las suites pasaron con 1,5 GB | `templates/baton.json` (`hooks.beforePart`), `skills/event`, con la 10 | S3 esperó 4 h 08 min de madrugada [seg §9 P10] |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
@@ -408,10 +453,12 @@ Lo nuevo:
    - los hallazgos completos, en un solo formato;
    - el texto del hook `deliver`;
    - la ronda reservada para el Critic (43);
-   - el estado validado tras cada escritura (42).
+   - el estado validado tras cada escritura (42);
+   - la aprobación escrita primero (47), el arranque sin `cwd` propio (48) y un resultado por turno (49);
+   - `branchCreatedBy` por plan, no en el perfil.
 
    Son cambios pequeños, y hacen fiable la medida de todo lo demás.
-1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44 y la 46 con la 1, y la 45 con la 2. Atacan la causa del correctivo, que es el 77 % del coste.
+1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44, la 46 y la 50 con la 1, y la 45 con la 2. Las 51 y 52 van con las 5–8. Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
 3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
 4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
