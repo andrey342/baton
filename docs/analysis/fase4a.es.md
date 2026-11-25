@@ -444,6 +444,54 @@ Es el run más limpio de los medidos con 0.3:
 | 51 | **Las desviaciones repetidas pasan al perfil:** cuando la misma desviación se acepta en dos partes de un run, el coordinador la escribe en `report.md` como cambio de perfil propuesto (una nota, un gate o un `beforePart`), y la persona decide si lo aplica | `skills/event`, `templates/report.md` | `PSModulePath` aceptado tres veces a mano [seg §10.4] |
 | 52 | **Comprobar la máquina antes de una parte pesada:** el perfil puede declarar un `beforePart` que lee la memoria libre y los procesos para las partes con E2E o Docker. Si no llega al umbral que fija la persona, baton pregunta antes de empezar, y no a mitad de la parte ni de madrugada. El umbral es de la persona: el «≥ 6 GB» de S3 no consta de dónde sale, y las suites pasaron con 1,5 GB | `templates/baton.json` (`hooks.beforePart`), `skills/event`, con la 10 | S3 esperó 4 h 08 min de madrugada [seg §9 P10] |
 
+### 6.7 Lo que añade el run `constructor-generado`
+
+La fuente es la retro `C:/MSG/.claude/runs/_baton-trazas/retro-constructor-generado.md`, citada como [cg §n], con las filas `obs:` de `C:/MSG/.claude/runs/constructor-generado/decisions.md`. Tampoco hay coste en USD: la retro no leyó los transcripts.
+
+En lo mecánico, es el segundo run limpio seguido:
+- 5 partes y 48 h 57 min de la aprobación a las PR (be#30, fe#23 y MSG#34);
+- 11 reviews y 6 Critic, con el modelo aprobado en todas;
+- 0 replanes, 0 reintentos, 0 tarjetas y 4 de 4 arranques aceptados;
+- 4,05 M de tokens de revisores.
+
+Pero el cierre (C5) se llevó 30 h 30 min, 10 h 47 min de ellas esperando a la persona [cg §1, §2].
+
+**Las reglas que las retros anteriores pidieron, y que la hoja escribió, funcionaron:**
+- el Critic como muy tarde tras la r2: C1 usó el tope exacto, y no hubo ninguna parte en `blocked` (la 43);
+- las tandas de auditoría por script: el cuadre salió bien en las 6 rondas (la 50);
+- las esperas con `Start-Process` y `Wait-Process`: no quedó ningún turno terminado para esperar. Es una forma real de la opción 1 de la 41;
+- las desviaciones de entorno pasadas a reglas, como `PSModulePath`, `build-server` y pwsh 7: ya no salen como desviaciones (la 51);
+- medir la memoria y preguntar solo por encima del 85 %: 0 preguntas por el host (la 52);
+- `start_session` sin `cwd`: 4 de 4 arranques aceptados (la 48) [cg §10.3].
+
+Todas siguen siendo reglas de la hoja. Lo que piden es pasarlas a baton.
+
+**Lo nuevo:**
+- **El cierre en cascada.** Una regla de baseline que no se podía cumplir terminó con la persona diciendo «pagar» la deuda dos veces (34 entradas más), y la auditoría pasó de 2 a 6 rondas. Luego el Critic final encontró una regresión (F-01) causada por ese pago, después de 2 h 44 min de repeticiones de E2E que ya no certificaban nada. Es la F2 de fase4a otra vez: arreglar deuda ensancha la entrega, y aquí ni siquiera hubo aviso de tamaño (la 3) [cg §10.1].
+- **Una auditoría por archivo no sustituye al Critic.** 367 revisiones de archivo y una review r1 en OK no vieron la regresión; el Critic sí. Por eso el Critic tiene que ir antes de los pasos caros [cg §10.2].
+- **Las lecciones entre partes sirven cuando son una clase y fallan cuando son un ejemplo.** «`new-run.ps1` recibe el array como string» no protegió a la parte que usó otro script con un parámetro array. Además, ese script decía OK sin arreglar nada [cg §8 filas 4, 14].
+- **El contador `parts[].decisions` cuenta todas las filas:** C1 tiene 8 y C5 16. El límite de seis de `supervisor.md` se refiere a las decisiones del supervisor, y en C5 el supervisor no decidió nada solo [cg §9 P3].
+- **El registro de hallazgos sigue incompleto:**
+  - `findings.jsonl` no recoge los hallazgos de los Critic, tampoco F-01, el más caro del run;
+  - `report.md` dice «Repeated findings: None yet» aunque `docs` sale en 6 planes (en `mcp-seguridad` contaba todo el archivo) [cg §8 filas 16–17].
+- **Una pregunta de entorno costó 6 h 25 min de noche,** y la persona la resolvió con la opción recomendada. El contraejemplo es F-01: ahí la recomendación de la parte era la equivocada y la persona la corrigió. Delegar `machine-environment` tiene sentido; delegar `scope`, no [cg §5, §9 P5].
+- **Las sesiones de C1–C4 siguieron vivas todo el run,** con el host al 85 %. No está medido si archivarlas libera memoria [cg §4].
+- **Fallos ya conocidos:**
+  - el resultado sobrescrito, por segunda vez y con más pérdida: siete turnos de C5 (la 49);
+  - `branch.createdBy` editado a mano por sexta vez, y `repos.*` sin `branchSha`;
+  - el hook `deliver`, por cuarta vez;
+  - el id del run no cabe en los 18 caracteres;
+  - el reviewer dado por hecho con un `end_turn` de texto (la 41) [cg §8].
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 53 | **«Repeated findings» bien calculado:** el informe cuenta las categorías de `findings.jsonl` por plan, sobre todos los planes, con un script, y propone una regla para cada categoría que sale en 2 planes o más, como ya pide `deliver.md`. El registro incluye los hallazgos de las Critic y la hora de cada ronda (completa la 8). Es un bug de 0.3 | `skills/event` («Logging findings»), `skills/event/deliver.md` («The report»), `scripts/` | «None yet» con `docs` en 6 planes; F-01 fuera del registro [cg §9 P2] |
+| 54 | **Dos contadores por parte:** `supervisorDecisions` para el límite de seis, y `rows` para todo lo demás (observaciones, escalaciones y respuestas). Es un bug de 0.3 | `templates/state.json`, `prompts/supervisor.md` («Safeguards») | C5 con 16 filas y ninguna decisión del supervisor tomada solo [cg §9 P3] |
+| 55 | **Al lanzar, ofrecer la delegación de `machine-environment`:** la propuesta pregunta «mientras no estés, ¿delego las preguntas de entorno con la opción recomendada?». Solo esa fila; nunca `scope` | `skills/run` (propuesta), `prompts/supervisor.md` («Delegation») | 6 h 25 min de noche; F-01 como contraejemplo [cg §9 P5] |
+| 56 | **Archivar las sesiones verificadas:** una clave de perfil `archiveVerifiedSessions`, para que la persona lo decida una vez por repo y no en cada run. Hay que medir antes si archivar libera memoria | `templates/baton.json`, `skills/event`, con la 52 | C1–C4 vivas con el host al 85 % [cg §9 P7] |
+| 57 | **El Critic antes de lo caro:** en una parte de cierre, el orden es congelar el código, hacer la review y el Critic, y solo después las repeticiones que certifican. Un cambio posterior vuelve a pasar por review y Critic solo en lo cambiado. Va en la plantilla de cierre de `/baton:plan` y en el bucle del implementador | `skills/plan`, `prompts/implementer.md` («The review loop»), con la 19 | 2 h 44 min de E2E que dejaron de valer por F-01 [cg M1, §10.2] |
+| 58 | **Las lecciones entre partes se escriben como clase:** cuando el coordinador pasa una lección a `settled.md`, escribe la regla general («todo script con parámetro array», «todo proceso que construye en `bin`/`obj`, también los auditores») y no solo el ejemplo | `skills/event` (las lecciones en `settled.md`) | Dos lecciones escritas como ejemplo que no protegieron la parte siguiente [cg §10.4, M5] |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
@@ -455,10 +503,12 @@ Es el run más limpio de los medidos con 0.3:
    - la ronda reservada para el Critic (43);
    - el estado validado tras cada escritura (42);
    - la aprobación escrita primero (47), el arranque sin `cwd` propio (48) y un resultado por turno (49);
-   - `branchCreatedBy` por plan, no en el perfil.
+   - `branchCreatedBy` por plan, no en el perfil, y `branchSha` rellenado en cada `done`;
+   - el informe y el registro de hallazgos completos (53) y los dos contadores por parte (54);
+   - un id de run de más de 18 caracteres.
 
    Son cambios pequeños, y hacen fiable la medida de todo lo demás.
-1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44, la 46 y la 50 con la 1, y la 45 con la 2. Las 51 y 52 van con las 5–8. Atacan la causa del correctivo, que es el 77 % del coste.
+1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44, la 46 y la 50 con la 1, la 45 con la 2 y la 57 con la 2 y la 19. Las 51, 52, 55, 56 y 58 van con las 5–8. Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
 3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
 4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
