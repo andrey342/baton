@@ -492,6 +492,57 @@ Todas siguen siendo reglas de la hoja. Lo que piden es pasarlas a baton.
 | 57 | **El Critic antes de lo caro:** en una parte de cierre, el orden es congelar el código, hacer la review y el Critic, y solo después las repeticiones que certifican. Un cambio posterior vuelve a pasar por review y Critic solo en lo cambiado. Va en la plantilla de cierre de `/baton:plan` y en el bucle del implementador | `skills/plan`, `prompts/implementer.md` («The review loop»), con la 19 | 2 h 44 min de E2E que dejaron de valer por F-01 [cg M1, §10.2] |
 | 58 | **Las lecciones entre partes se escriben como clase:** cuando el coordinador pasa una lección a `settled.md`, escribe la regla general («todo script con parámetro array», «todo proceso que construye en `bin`/`obj`, también los auditores») y no solo el ejemplo | `skills/event` (las lecciones en `settled.md`) | Dos lecciones escritas como ejemplo que no protegieron la parte siguiente [cg §10.4, M5] |
 
+### 6.8 Lo que añade el run `cap-fiabilidad`
+
+La fuente es la retro `C:/MSG/.claude/runs/_baton-trazas/retro-cap-fiabilidad.md`, citada como [cf §n], con las filas `obs:` de `C:/MSG/.claude/runs/cap-fiabilidad/decisions.md`. Lo que viene solo del coordinador va marcado como tal. Tampoco hay coste en USD: la retro no leyó los transcripts. El run está entregado pero no cerrado (be#31 y MSG#35 abiertas, el merge es de la persona), así que el cierre puede añadir algo.
+
+En lo mecánico, es el tercer run limpio seguido:
+- 4 partes y 38 h 57 min de la aprobación a las PR, 8 h 19 min de ellas esperando a la persona;
+- 10 reviews y 9 Critic (3 de diseño), con el modelo aprobado en las 19 rondas;
+- 0 replanes, 0 reintentos, 0 tarjetas y 4 de 4 arranques aceptados sin `cwd`;
+- 6 decisiones de la persona, ninguna evitable del todo y 2 evitables en parte;
+- al menos 4,56 M de tokens de revisores, sin contar F3 [cf §1, §2, §3, §11].
+
+**Lo que confirma:**
+- **Las reglas que pidió `constructor-generado`, escritas en la hoja, funcionaron:**
+  - el Critic final antes de las repeticiones caras: la cascada de 30 h no se repitió (la 57);
+  - la auditoría por archivo en 2 rondas, sin 🔴 ni 🟠 abiertos (la 19 y la 50);
+  - las esperas con `Start-Process` y `Wait-Process`: ningún turno terminado para esperar (la 41) [cf §10.1].
+- **El Critic encuentra lo que la review no ve, otra vez.** Hubo 4 FAIL del Critic en 9 rondas, y la review anterior no había visto ninguno de los cuatro. Uno era una regresión del propio run: una solución regenerada que ya no compilaba sus tests. Refuerza la 29 y la 57 [cf §2, §10.2].
+- **El registro de hallazgos sigue incompleto, por tercera retro.** `findings.jsonl` tiene 2 filas de este run, las dos de F2 r1. Faltan los 4 FAIL del Critic, los hallazgos de F1 y todo F3 y F4, y `report.md` dice «Repeated findings: None yet» (la 53) [cf §8 filas 23–24].
+- **Un resultado por parte pierde cifras.** `result-F3.md` no trae `reviewer_usage`, y la r3 del Critic de diseño de F1 se perdió en una compactación. Con un resultado por turno (la 49), el uso de cada turno quedaría escrito antes de que la compactación se lo lleve [cf §8 fila 25].
+- **Fallos conocidos que siguen sin arreglar:**
+  - `branch.createdBy` editado a mano por séptima vez;
+  - el texto del hook `deliver` por quinta vez;
+  - el brief con rangos de línea por quinta vez;
+  - `gates: []`, `install: ""` y hashes cortos en el estado.
+
+  El arranque de MSG prohíbe tocar el perfil, y por eso nunca se arreglan en el repo: tienen que arreglarse en baton (paso 0) [cf §8 filas 1–3, 26; §11].
+- **El coordinador reescribió `state.json` con Python**, contra la regla del perfil. Salió en UTF-8 correcto, pero es lo que la 20 y la 42 quieren hacer imposible [cf §8 fila 4].
+- **Los transcripts de los subagentes en segundo plano se quedan a 0 bytes hasta que entregan,** por tercera retro. Es la 41 [cf §8 fila 5].
+- **La persona volvió a pedir el archivado de las sesiones,** y F4 quedó viva por si la CI pedía un arreglo (la 56) [cf §4].
+- **El modo auto rechazó `bind_pr` y hubo que repetir `archive_session`,** por el campo `session` que añade el hook. Un `gh pr list` con un `cd` delante quedó sin veredicto. Ya lo había contado el coordinador de `mcp-seguridad`, y sigue viniendo solo del coordinador.
+
+**Lo nuevo:**
+- **La regla del 85 % mide el host, y lo que se queda sin memoria es la VM de Docker.** `sqlserver` murió 5 veces en F4 y 2 en F2 (exit 137), con el host entre el 59 y el 78 %. El swap de la VM estaba lleno y no bajaba al reiniciar el contenedor, y el DNS interno caía sin que muriera ningún contenedor. Es el tercer run seguido con esta VM de 3,83 GiB. La 52 tal como está da una señal falsa de seguridad [cf §4, §10.3].
+- **La misma pregunta dos veces en una parte.** En F4 la persona aceptó a las 16:05 repetir por filtro (`FullyQualifiedName` y `Run__ScenarioFilter`) como evidencia equivalente. A las 19:18 llegó la misma pregunta por otra suite, con la misma causa, y costó otros 12 min. La fila `red-gate-environment` es de la persona, pero su primera respuesta ya decía cómo quería la segunda [cf §5].
+- **La regla «una regresión del run no es un límite» funcionó,** escrita en la hoja (`plan.md:145`). En F2 la parte preguntó con el aviso dentro de la pregunta, y la persona eligió con el aviso a la vista. Más tarde, los 4 `if-braces` que la plantilla de F1 metió en el código generado pasaron al brief de F4 como regresión, no como límite. En `constructor-generado`, sin esa regla, la recomendación de la parte era la equivocada [cf §5, §10.1].
+- **Un script de limpieza borró aunque había fallado el paso anterior.** El script de `cf-vieja` borró la solución con `REGEN EXIT 1` y `DELETE EXIT 0`, y el «Después» del informe salió de archivos estáticos. Se declaró en la PR, pero la evidencia se perdió [cf §8 fila 15].
+- **Un auditor usó una herramienta que su brief prohibía, y salió a la red.** Usó el CLI de GitNexus, y su wrapper descargó paquetes con `pnpm dlx`, un acceso a la red que nadie había pedido. Además, el índice iba 17 commits atrasado y no resolvió llamantes. El auditor lo declaró y el radio salió de `git grep`. Una prohibición escrita en el brief no basta [cf §8 fila 17].
+- **Una búsqueda de clase que no miró `tests`.** La segunda configuración de CAP solo apareció por un rojo en `tests`: la búsqueda previa había mirado `src` y la plantilla. Es la 44 aplicada a las búsquedas previas: la clase entera, también `tests` [cf §8 fila 12].
+- **Contenedores ajenos en la pila:** había 13 `crystaldba/postgres-mcp`. No se tocaron, pero ocupaban memoria de la misma VM [cf §8 fila 16].
+
+Lo que la retro marca para la hoja y el arranque de MSG (M1–M8) no va aquí: el gateway y su offset, el test intermitente de be#31, el `timeout-minutes`, los filtros que ejecutan 0 tests, el `PATH` de FaultHost, `git checkout` con dos archivos y el recolector de `msg-work-report`.
+
+| # | Propuesta | Cambia | Evidencia |
+|---|---|---|---|
+| 59 | **La comprobación de la máquina mide donde corre el trabajo:** para las partes con Docker, el `beforePart` de la 52 mide también la VM (`docker run --rm alpine free -m`, o lo que el perfil declare) y guarda la salida en un archivo del run. También lista los contenedores ajenos al run, sin tocarlos. El umbral sigue siendo de la persona | `templates/baton.json` (`hooks.beforePart`), `skills/event`, con la 52 | 7 muertes de `sqlserver` con el host al 59–78 %; 13 contenedores ajenos [cf §4, §9 P4] |
+| 60 | **Ofrecer que una respuesta valga para el resto del run:** cuando la persona responde a una fila delegable (`red-gate-environment` o `machine-environment`), la escalada ofrece un botón «aplícalo también a las siguientes iguales». Si lo pulsa, su respuesta pasa a ser una delegación con ese alcance, escrita como pide «Delegation during the run». Sin el botón, nada cambia | `prompts/supervisor.md` («How to escalate», «Delegation»), con la 55 | La misma pregunta de evidencia equivalente dos veces en F4 [cf §5] |
+| 61 | **Una regresión del run no es una desviación:** si el diff del run causa un rojo, el supervisor no lo acepta como límite ni como evidencia equivalente. Es un hallazgo que se arregla. Si la parte propone aceptarlo, es la fila `scope` (quitar un criterio), y la pregunta lleva el aviso de que es una regresión del run | `prompts/supervisor.md` («Deviations from a gate»), `prompts/implementer.md` | Funcionó como regla de la hoja en F2 y F4; en `constructor-generado`, sin ella, la recomendación fue la equivocada [cf §10.1] |
+| 62 | **Nada destructivo tras un paso fallido:** un script que la parte escribe comprueba el código de salida de cada paso, y solo borra o sobrescribe si el anterior salió bien | `prompts/implementer.md`, `templates/brief.md` | `cf-vieja` borró con `REGEN EXIT 1` [cf §9 P5] |
+| 63 | **Las prohibiciones a los subagentes se comprueban, no solo se escriben:** <ul><li>el implementador da a sus auditores lo que necesitan ya calculado, como el radio de un cambio;</li><li>el reviewer y los auditores declaran en su respuesta cada comando fuera de lo permitido y cada acceso a la red;</li><li>un comando prohibido es un hallazgo de la parte.</li></ul> | `agents/reviewer.md`, `prompts/implementer.md` | El CLI de GitNexus con `pnpm dlx` [cf §9 P6] |
+| 64 | **Las herramientas de la app no son camino crítico:** si el modo auto rechaza `bind_pr`, la entrega da el enlace de la PR y sigue. Si `archive_session` falla por los argumentos, se repite una vez y luego se dice. Cada comando va solo en su llamada, sin `cd` delante. Es un bug de 0.3 | `skills/event/deliver.md`, `skills/status` | `bind_pr` rechazado y `archive_session` repetido en dos runs, según sus coordinadores |
+
 **Orden recomendado para el plan de 0.4:**
 0. Una primera parte con los bugs de 0.3, que las dos retros piden como 0.3.1:
    - el `cwd` (13, ya visto en fase4a);
@@ -505,10 +556,11 @@ Todas siguen siendo reglas de la hoja. Lo que piden es pasarlas a baton.
    - la aprobación escrita primero (47), el arranque sin `cwd` propio (48) y un resultado por turno (49);
    - `branchCreatedBy` por plan, no en el perfil, y `branchSha` rellenado en cada `done`;
    - el informe y el registro de hallazgos completos (53) y los dos contadores por parte (54);
+   - las herramientas de la app fuera del camino crítico (64);
    - un id de run de más de 18 caracteres.
 
    Son cambios pequeños, y hacen fiable la medida de todo lo demás.
-1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44, la 46 y la 50 con la 1, la 45 con la 2 y la 57 con la 2 y la 19. Las 51, 52, 55, 56 y 58 van con las 5–8. Atacan la causa del correctivo, que es el 77 % del coste.
+1. Las propuestas 1–4 (calidad de lo que se entrega), con la 19 dentro de la 2, la 44, la 46, la 50 y la 63 con la 1, la 45 con la 2, la 57 con la 2 y la 19, y la 61 y la 62 con la 4. Las 51, 52, 55, 56, 58, 59 y 60 van con las 5–8. Atacan la causa del correctivo, que es el 77 % del coste.
 2. Las 5–8 (que baton lleve el correctivo y la mecánica).
 3. Las 9–13. La 15 va con la 9, porque las dos tocan `models.md` y el modelo de las partes difíciles.
 4. Las 14, 16 y 17: cambios pequeños de prompts, plantilla y precios. La 14 es la que más ahorra, porque su fila es la más cara del run.
